@@ -2,7 +2,7 @@
 <html lang="pt">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
   <title>YK Server · Animes & Games</title>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -11,16 +11,23 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: 'Segoe UI', 'Poppins', system-ui, sans-serif;
+      font-family: 'Segoe UI', 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
       background: radial-gradient(circle at 10% 20%, #0f0b1a, #08050f);
       color: #f5e6f0;
-      height: 100vh;
-      overflow: hidden;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    /* Mobile first - ajustes para todos os dispositivos */
+    body, html {
+      overflow-x: hidden;
+      width: 100%;
+      position: relative;
     }
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: #1e1a2a; }
     ::-webkit-scrollbar-thumb { background: #ff5a8a; border-radius: 10px; }
 
+    /* Animações */
     @keyframes shakeError {
       0%, 100% { transform: translateX(0); }
       25% { transform: translateX(-6px); }
@@ -43,6 +50,16 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+    @keyframes slideInLeft {
+      from { transform: translateX(-100%); }
+      to { transform: translateX(0); }
+    }
+    @keyframes slideInRight {
+      from { transform: translateX(100%); }
+      to { transform: translateX(0); }
+    }
+
+    /* Toast notifications */
     .error-toast {
       position: fixed;
       top: 30px;
@@ -58,9 +75,14 @@
       animation: fadeInUp 0.3s ease, shakeError 0.4s ease;
       backdrop-filter: blur(8px);
       font-size: 14px;
+      white-space: nowrap;
+      max-width: 90vw;
+      white-space: normal;
+      text-align: center;
     }
     .success-toast { background: #4caf50; animation: fadeInUp 0.3s ease; }
 
+    /* Login Screen */
     .login-screen {
       position: fixed;
       top: 0;
@@ -72,18 +94,27 @@
       justify-content: center;
       align-items: center;
       z-index: 100;
+      padding: 16px;
     }
     .login-card {
       background: rgba(30, 22, 45, 0.8);
       backdrop-filter: blur(20px);
-      padding: 40px;
-      border-radius: 56px;
-      width: 380px;
+      padding: 32px 24px;
+      border-radius: 48px;
+      width: 100%;
+      max-width: 380px;
       border: 1px solid rgba(255, 90, 138, 0.4);
       box-shadow: 0 25px 45px rgba(255, 90, 138, 0.2);
       text-align: center;
     }
-    .login-card h2 { margin-bottom: 20px; background: linear-gradient(135deg, #ff90b5, #ff5a8a); -webkit-background-clip: text; background-clip: text; color: transparent; font-size: 32px; }
+    .login-card h2 { 
+      margin-bottom: 20px; 
+      background: linear-gradient(135deg, #ff90b5, #ff5a8a); 
+      -webkit-background-clip: text; 
+      background-clip: text; 
+      color: transparent; 
+      font-size: 28px; 
+    }
     .login-card input {
       width: 100%;
       padding: 14px;
@@ -110,9 +141,20 @@
       transition: 0.3s;
     }
     .login-card button:hover { transform: scale(1.02); box-shadow: 0 5px 20px rgba(255, 90, 138, 0.4); }
-    .login-card .switch { text-align: center; margin-top: 20px; color: #ccb0e0; cursor: pointer; font-size: 13px; transition: 0.2s; }
+    .login-card .switch { 
+      text-align: center; 
+      margin-top: 20px; 
+      color: #ccb0e0; 
+      cursor: pointer; 
+      font-size: 13px; 
+      transition: 0.2s; 
+    }
     .login-card .switch:hover { color: #ff90b5; }
-    .app { display: none; height: 100vh; flex-direction: column; }
+    
+    /* App Layout - Desktop padrão */
+    .app { display: none; min-height: 100vh; flex-direction: column; }
+    
+    /* Loading Screen */
     .loading-screen {
       position: fixed;
       top: 0;
@@ -135,44 +177,90 @@
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
+    
+    /* Top Bar */
     .top-bar {
-      background: rgba(19, 14, 28, 0.85);
+      background: rgba(19, 14, 28, 0.95);
       backdrop-filter: blur(12px);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 32px;
+      padding: 12px 20px;
       border-bottom: 1px solid rgba(255, 90, 138, 0.3);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      flex-wrap: wrap;
+      gap: 12px;
     }
-    .logo-area { display: flex; align-items: center; gap: 14px; }
+    .logo-area { 
+      display: flex; 
+      align-items: center; 
+      gap: 12px; 
+      flex-shrink: 0;
+    }
     .yk-logo {
-      width: 50px;
-      height: 50px;
+      width: 44px;
+      height: 44px;
       background: linear-gradient(135deg, #ff5a8a, #ff3366, #ff8ab5);
       background-size: 200% 200%;
-      border-radius: 25px;
+      border-radius: 22px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 900;
-      font-size: 28px;
+      font-size: 24px;
       color: white;
       box-shadow: 0 0 20px rgba(255, 90, 138, 0.6);
       transition: 0.3s;
       animation: gradientShift 3s ease infinite, pulseGlow 2s ease infinite;
+      flex-shrink: 0;
     }
-    .yk-logo:hover { transform: rotate(5deg) scale(1.08); }
-    .top-bar h1 { font-size: 22px; background: linear-gradient(135deg, #ff90b5, #ff5a8a); -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: 600; }
-    .user-info { display: flex; gap: 20px; align-items: center; }
-    .logout-btn { background: transparent; border: 1px solid #ff7aa8; padding: 6px 20px; border-radius: 40px; cursor: pointer; color: #ff90b5; transition: 0.2s; }
+    .top-bar h1 { 
+      font-size: 18px; 
+      background: linear-gradient(135deg, #ff90b5, #ff5a8a); 
+      -webkit-background-clip: text; 
+      background-clip: text; 
+      color: transparent; 
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .user-info { 
+      display: flex; 
+      gap: 12px; 
+      align-items: center; 
+      flex-wrap: wrap;
+    }
+    .user-info span {
+      font-size: 13px;
+    }
+    .logout-btn { 
+      background: transparent; 
+      border: 1px solid #ff7aa8; 
+      padding: 6px 16px; 
+      border-radius: 40px; 
+      cursor: pointer; 
+      color: #ff90b5; 
+      transition: 0.2s; 
+      font-size: 12px;
+    }
     .logout-btn:hover { background: rgba(255, 90, 138, 0.2); border-color: #ff5a8a; }
-    .main-layout { display: flex; flex: 1; overflow: hidden; }
+    
+    /* Main Layout - Desktop (sidebar + content) */
+    .main-layout { 
+      display: flex; 
+      flex: 1; 
+      min-height: calc(100vh - 70px);
+    }
+    
+    /* Sidebar Desktop */
     .sidebar {
       width: 250px;
       background: rgba(17, 12, 28, 0.7);
       backdrop-filter: blur(8px);
       padding: 28px 16px;
       border-right: 1px solid rgba(255, 90, 138, 0.2);
+      transition: transform 0.3s ease;
     }
     .nav-item {
       padding: 12px 18px;
@@ -182,11 +270,50 @@
       transition: 0.2s;
       font-weight: 600;
       color: #e2ccee;
+      white-space: nowrap;
     }
     .nav-item:hover { background: rgba(255, 90, 138, 0.2); color: #ffb8d0; transform: translateX(5px); }
     .nav-item.active { background: linear-gradient(135deg, #ff5a8a, #ff3366); color: white; box-shadow: 0 4px 14px rgba(255, 90, 138, 0.4); }
-    .content-area { flex: 1; overflow-y: auto; padding: 28px; background: rgba(8, 5, 15, 0.6); }
-    .anime-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 28px; }
+    
+    /* Content Area */
+    .content-area { 
+      flex: 1; 
+      overflow-y: auto; 
+      padding: 20px; 
+      background: rgba(8, 5, 15, 0.6);
+      min-width: 0;
+    }
+    
+    /* Mobile Menu Button (visível apenas no mobile) */
+    .mobile-menu-btn {
+      display: none;
+      background: rgba(255, 90, 138, 0.2);
+      border: 1px solid rgba(255, 90, 138, 0.5);
+      border-radius: 12px;
+      padding: 10px;
+      cursor: pointer;
+      font-size: 20px;
+      color: #ff90b5;
+    }
+    
+    /* Mobile Overlay */
+    .mobile-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      z-index: 90;
+    }
+    
+    /* Anime Grid */
+    .anime-grid { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); 
+      gap: 20px; 
+    }
     .anime-card {
       background: rgba(23, 17, 38, 0.9);
       backdrop-filter: blur(4px);
@@ -217,10 +344,10 @@
     }
     .anime-card:hover .anime-image img { transform: scale(1.05); }
     .card-content { padding: 12px; flex: 1; display: flex; flex-direction: column; }
-    .card-content h3 { font-size: 14px; margin-bottom: 4px; color: #ffc0dd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-content h3 { font-size: 13px; margin-bottom: 4px; color: #ffc0dd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .categories-wrapper { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 8px 0; }
-    .category-badge { font-size: 9px; background: rgba(47, 35, 75, 0.8); display: inline-block; padding: 3px 8px; border-radius: 20px; color: #ffafcf; }
-    .watch-btn { margin-top: 6px; padding: 6px; background: linear-gradient(135deg, #ff5a8a, #ff3366); text-align: center; border-radius: 30px; color: white; font-weight: bold; font-size: 11px; transition: 0.2s; margin-top: auto; cursor: pointer; }
+    .category-badge { font-size: 8px; background: rgba(47, 35, 75, 0.8); display: inline-block; padding: 3px 8px; border-radius: 20px; color: #ffafcf; }
+    .watch-btn { margin-top: 6px; padding: 6px; background: linear-gradient(135deg, #ff5a8a, #ff3366); text-align: center; border-radius: 30px; color: white; font-weight: bold; font-size: 10px; transition: 0.2s; margin-top: auto; cursor: pointer; }
     .favorite-btn-overlay {
       position: absolute;
       top: 8px;
@@ -241,87 +368,51 @@
     .delete-btn { right: 8px; background: rgba(165, 66, 106, 0.8); color: white; }
     .edit-btn { right: 55px; background: rgba(58, 42, 85, 0.9); color: white; }
     .novidade-badge { position: absolute; top: 8px; left: 8px; background: linear-gradient(135deg, #ff5a8a, #ff3366); padding: 3px 10px; border-radius: 30px; font-size: 9px; font-weight: bold; z-index: 2; }
-    .admin-form { background: rgba(22, 16, 41, 0.9); backdrop-filter: blur(4px); border-radius: 28px; padding: 24px; margin-bottom: 32px; border: 1px solid rgba(255, 90, 138, 0.3); }
-    .admin-form input, .admin-form textarea, .admin-form select { width: 100%; padding: 12px; margin: 8px 0; background: #251f36; border: 1px solid rgba(255, 90, 138, 0.3); border-radius: 24px; color: white; }
+    
+    /* Admin Form */
+    .admin-form { background: rgba(22, 16, 41, 0.9); backdrop-filter: blur(4px); border-radius: 28px; padding: 20px; margin-bottom: 32px; border: 1px solid rgba(255, 90, 138, 0.3); }
+    .admin-form input, .admin-form textarea, .admin-form select { width: 100%; padding: 12px; margin: 8px 0; background: #251f36; border: 1px solid rgba(255, 90, 138, 0.3); border-radius: 24px; color: white; font-size: 14px; }
     .categories-checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; padding: 12px; background: rgba(37, 31, 54, 0.6); border-radius: 24px; }
     .categories-checkbox-group label { display: flex; align-items: center; gap: 5px; font-size: 12px; cursor: pointer; }
     .season-item { background: rgba(31, 24, 48, 0.8); padding: 18px; border-radius: 24px; margin-bottom: 18px; }
     .episode-item { background: rgba(42, 35, 64, 0.8); padding: 12px; border-radius: 20px; margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     .episode-item input { flex: 1; min-width: 100px; background: #1a1329; border: none; padding: 8px 12px; border-radius: 20px; color: white; font-size: 12px; }
     .audio-group { display: flex; flex-wrap: wrap; gap: 8px; flex: 3; align-items: center; }
-    .upload-container {
-      background: #1a1329;
-      border-radius: 20px;
-      padding: 8px;
-      min-width: 250px;
-    }
-    .upload-area {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-    .upload-label {
-      background: #a85c7c;
-      padding: 6px 12px;
-      border-radius: 20px;
-      cursor: pointer;
-      font-size: 11px;
-      text-align: center;
-      transition: 0.2s;
-    }
+    .upload-container { background: #1a1329; border-radius: 20px; padding: 8px; min-width: 200px; }
+    .upload-area { display: flex; flex-direction: column; gap: 5px; }
+    .upload-label { background: #a85c7c; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 11px; text-align: center; transition: 0.2s; }
     .upload-label:hover { background: #ff5a8a; }
-    .progress-bar-container {
-      width: 100%;
-      height: 20px;
-      background: #2a2340;
-      border-radius: 10px;
-      overflow: hidden;
-      margin: 5px 0;
-    }
-    .progress-bar-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #ff5a8a, #ff3366);
-      width: 0%;
-      transition: width 0.3s ease;
-      border-radius: 10px;
-    }
-    .upload-status {
-      font-size: 10px;
-      color: #ffafcf;
-      display: flex;
-      justify-content: space-between;
-    }
-    .cancel-upload {
-      background: #a5426a;
-      border: none;
-      border-radius: 15px;
-      padding: 2px 8px;
-      font-size: 10px;
-      cursor: pointer;
-    }
+    .progress-bar-container { width: 100%; height: 20px; background: #2a2340; border-radius: 10px; overflow: hidden; margin: 5px 0; }
+    .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #ff5a8a, #ff3366); width: 0%; transition: width 0.3s ease; border-radius: 10px; }
+    .upload-status { font-size: 10px; color: #ffafcf; display: flex; justify-content: space-between; }
+    .cancel-upload { background: #a5426a; border: none; border-radius: 15px; padding: 2px 8px; font-size: 10px; cursor: pointer; }
+    
+    /* Search and Filters */
     .search-bar { background: rgba(26, 19, 41, 0.8); border-radius: 60px; padding: 8px 20px; margin-bottom: 20px; border: 1px solid rgba(255, 90, 138, 0.3); display: flex; align-items: center; }
     .search-bar input { background: transparent; border: none; color: white; width: 100%; outline: none; font-size: 14px; }
-    .filter-bar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 25px; }
-    .filter-chip { background: rgba(31, 24, 48, 0.8); padding: 5px 18px; border-radius: 40px; font-size: 12px; cursor: pointer; transition: 0.2s; color: #e2ccee; }
+    .filter-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+    .filter-chip { background: rgba(31, 24, 48, 0.8); padding: 5px 14px; border-radius: 40px; font-size: 11px; cursor: pointer; transition: 0.2s; color: #e2ccee; white-space: nowrap; }
     .filter-chip.active { background: linear-gradient(135deg, #ff5a8a, #ff3366); color: white; }
+    
+    /* Modal */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 200; visibility: hidden; opacity: 0; transition: 0.2s; }
     .modal-overlay.active { visibility: visible; opacity: 1; }
     .modal-detail { background: #1c152e; width: 95vw; max-width: 1300px; height: 90vh; border-radius: 48px; display: flex; flex-direction: column; border: 1px solid #ff7aa8; overflow: hidden; }
     .modal-header { padding: 18px 25px; border-bottom: 1px solid rgba(255, 90, 138, 0.3); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; background: rgba(28, 21, 46, 0.9); }
-    .modal-header h2 { color: #ff8ab5; font-size: 24px; }
-    .close-modal { background: none; border: none; font-size: 32px; color: #ffb0cc; cursor: pointer; }
-    .modal-body { flex: 1; overflow-y: auto; padding: 25px; display: flex; flex-direction: column; gap: 20px; }
-    .modal-top { display: flex; flex-wrap: wrap; gap: 25px; }
-    .modal-image { flex: 0 0 200px; }
+    .modal-header h2 { color: #ff8ab5; font-size: 20px; }
+    .close-modal { background: none; border: none; font-size: 28px; color: #ffb0cc; cursor: pointer; }
+    .modal-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+    .modal-top { display: flex; flex-wrap: wrap; gap: 20px; }
+    .modal-image { flex: 0 0 150px; }
     .modal-image img { width: 100%; border-radius: 16px; display: block; }
     .modal-info { flex: 1; }
     .modal-categories { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
     .modal-cat { background: rgba(255, 90, 138, 0.2); display: inline-block; padding: 4px 16px; border-radius: 60px; font-size: 12px; }
-    .modal-desc { background: rgba(15, 11, 28, 0.8); padding: 16px; border-radius: 24px; line-height: 1.5; margin: 12px 0; font-size: 14px; }
+    .modal-desc { background: rgba(15, 11, 28, 0.8); padding: 16px; border-radius: 24px; line-height: 1.5; margin: 12px 0; font-size: 13px; }
     .season-tabs { display: flex; flex-wrap: wrap; gap: 10px; margin: 15px 0; border-bottom: 1px solid rgba(255, 90, 138, 0.3); padding-bottom: 12px; }
-    .season-tab { background: #2f234b; padding: 6px 20px; border-radius: 40px; cursor: pointer; transition: 0.2s; font-weight: bold; font-size: 13px; }
+    .season-tab { background: #2f234b; padding: 6px 20px; border-radius: 40px; cursor: pointer; transition: 0.2s; font-weight: bold; font-size: 12px; }
     .season-tab.active { background: linear-gradient(135deg, #ff5a8a, #ff3366); color: white; }
-    .episodes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-top: 15px; max-height: 380px; overflow-y: auto; padding-right: 8px; }
+    .episodes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-top: 15px; max-height: 380px; overflow-y: auto; padding-right: 8px; }
     .episode-card-modal { background: rgba(37, 31, 54, 0.9); border-radius: 20px; padding: 10px 14px; display: flex; align-items: center; gap: 12px; }
     .episode-img-modal { width: 45px; height: 45px; object-fit: cover; border-radius: 12px; background: #1a1329; }
     .episode-info-modal { flex: 1; }
@@ -329,13 +420,153 @@
     .audio-buttons { display: flex; gap: 8px; margin-top: 5px; flex-wrap: wrap; }
     .audio-link { background: #ff5a8a; padding: 3px 10px; border-radius: 30px; text-decoration: none; color: white; font-weight: bold; font-size: 10px; display: inline-block; }
     .audio-link.dub { background: #6a4c7c; }
-    .inicio-card { background: rgba(23, 17, 38, 0.8); backdrop-filter: blur(8px); border-radius: 48px; padding: 36px; text-align: center; border: 1px solid rgba(255, 90, 138, 0.4); }
-    .btn-sugestao { background: linear-gradient(135deg, #ff5a8a, #ff3366); padding: 12px 28px; border-radius: 80px; color: white; font-weight: bold; border: none; cursor: pointer; margin-top: 20px; }
-    .edit-mode-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 25px; margin-top: 20px; }
+    
+    /* Inicio Card */
+    .inicio-card { background: rgba(23, 17, 38, 0.8); backdrop-filter: blur(8px); border-radius: 48px; padding: 30px 20px; text-align: center; border: 1px solid rgba(255, 90, 138, 0.4); }
+    .btn-sugestao { background: linear-gradient(135deg, #ff5a8a, #ff3366); padding: 12px 28px; border-radius: 80px; color: white; font-weight: bold; border: none; cursor: pointer; margin-top: 20px; font-size: 14px; }
+    .edit-mode-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 20px; margin-top: 20px; }
     .empty-favorites { text-align: center; padding: 50px; color: #aa99cc; }
     .announcement-card { background: linear-gradient(135deg, rgba(42, 26, 58, 0.9), rgba(31, 24, 48, 0.9)); border-left: 6px solid #ff5a8a; padding: 14px 20px; border-radius: 24px; margin-bottom: 18px; }
     .audio-label { font-size: 10px; color: #ffafcf; margin-right: 3px; }
     .file-name { font-size: 10px; color: #aaa; margin-top: 3px; word-break: break-all; }
+    .add-season-btn, .add-ep-btn-season { background: #6a4c7c; padding: 8px 16px; border-radius: 40px; border: none; color: white; cursor: pointer; font-size: 12px; margin-top: 10px; }
+    .remove-season-btn, .remove-ep { background: #a5426a; padding: 4px 12px; border-radius: 40px; border: none; color: white; cursor: pointer; font-size: 11px; }
+    
+    /* ============================================ */
+    /* MOBILE STYLES - Ativado quando detectado */
+    /* ============================================ */
+    @media (max-width: 768px) {
+      .top-bar h1 { font-size: 14px; white-space: normal; max-width: 150px; line-height: 1.2; }
+      .yk-logo { width: 38px; height: 38px; font-size: 20px; }
+      
+      /* Sidebar transformado em menu lateral */
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 260px;
+        height: 100vh;
+        z-index: 100;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        background: rgba(17, 12, 28, 0.98);
+        backdrop-filter: blur(16px);
+        border-right: 1px solid rgba(255, 90, 138, 0.3);
+        padding-top: 70px;
+        overflow-y: auto;
+      }
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      .mobile-menu-btn {
+        display: block;
+      }
+      .mobile-overlay.active {
+        display: block;
+      }
+      .main-layout {
+        flex-direction: column;
+      }
+      .content-area {
+        padding: 16px;
+        min-height: calc(100vh - 70px);
+      }
+      .anime-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 16px;
+      }
+      .card-content h3 {
+        font-size: 12px;
+      }
+      .category-badge {
+        font-size: 7px;
+        padding: 2px 6px;
+      }
+      .watch-btn {
+        font-size: 9px;
+        padding: 5px;
+      }
+      .filter-chip {
+        font-size: 10px;
+        padding: 4px 12px;
+      }
+      .admin-form {
+        padding: 16px;
+      }
+      .modal-detail {
+        width: 98vw;
+        height: 95vh;
+        border-radius: 24px;
+      }
+      .modal-header h2 {
+        font-size: 16px;
+      }
+      .modal-image {
+        flex: 0 0 120px;
+      }
+      .episode-item {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .audio-group {
+        flex-direction: column;
+      }
+      .upload-container {
+        width: 100%;
+      }
+      .user-info span {
+        font-size: 11px;
+      }
+      .logout-btn {
+        padding: 4px 12px;
+        font-size: 11px;
+      }
+    }
+    
+    /* Telas muito pequenas (até 480px) */
+    @media (max-width: 480px) {
+      .anime-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 12px;
+      }
+      .content-area {
+        padding: 12px;
+      }
+      .card-content {
+        padding: 8px;
+      }
+      .card-content h3 {
+        font-size: 11px;
+      }
+      .favorite-btn-overlay {
+        font-size: 12px;
+        padding: 3px 6px;
+      }
+      .novidade-badge {
+        font-size: 7px;
+        padding: 2px 8px;
+      }
+      .modal-top {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+      .modal-image {
+        flex: 0 0 auto;
+        width: 140px;
+        margin: 0 auto;
+      }
+      .inicio-card {
+        padding: 20px 16px;
+      }
+      .inicio-card h2 {
+        font-size: 18px;
+      }
+      .btn-sugestao {
+        padding: 10px 20px;
+        font-size: 13px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -353,19 +584,98 @@
   <p>Carregando YK Server...</p>
 </div>
 <div id="app" class="app">
-  <div class="top-bar"><div class="logo-area"><div class="yk-logo">YK</div><h1>✦ YK Server · Animes & Games ✦</h1></div><div class="user-info"><span id="userName"></span><button class="logout-btn" id="logoutBtn">Sair</button></div></div>
-  <div class="main-layout"><div class="sidebar"><div class="nav-item" data-tab="inicio">🏠 Início</div><div class="nav-item" data-tab="animes">📺 Animes</div><div class="nav-item" data-tab="mangas">📚 Mangás</div><div class="nav-item" data-tab="favoritos">⭐ Favoritos</div><div class="nav-item" data-tab="edit" id="editTab" style="display:none;">✏️ Editar</div><div class="nav-item" data-tab="avisos">📢 Avisos</div><div class="nav-item" data-tab="admin" id="adminTab" style="display:none;">👑 Admin</div></div><div class="content-area" id="content"></div></div>
+  <div class="top-bar">
+    <div class="logo-area">
+      <div class="mobile-menu-btn" id="mobileMenuBtn">☰</div>
+      <div class="yk-logo">YK</div>
+      <h1>✦ YK Server · Animes & Games ✦</h1>
+    </div>
+    <div class="user-info">
+      <span id="userName"></span>
+      <button class="logout-btn" id="logoutBtn">Sair</button>
+    </div>
+  </div>
+  <div class="main-layout">
+    <div class="sidebar" id="sidebar">
+      <div class="nav-item" data-tab="inicio">🏠 Início</div>
+      <div class="nav-item" data-tab="animes">📺 Animes</div>
+      <div class="nav-item" data-tab="mangas">📚 Mangás</div>
+      <div class="nav-item" data-tab="favoritos">⭐ Favoritos</div>
+      <div class="nav-item" data-tab="edit" id="editTab" style="display:none;">✏️ Editar</div>
+      <div class="nav-item" data-tab="avisos">📢 Avisos</div>
+      <div class="nav-item" data-tab="admin" id="adminTab" style="display:none;">👑 Admin</div>
+    </div>
+    <div class="content-area" id="content"></div>
+  </div>
 </div>
+<div id="mobileOverlay" class="mobile-overlay"></div>
 <div id="detailModal" class="modal-overlay"><div class="modal-detail"><div class="modal-header"><h2>📘 Ficha completa</h2><button class="close-modal" id="closeModalBtn">✕</button></div><div class="modal-body" id="modalBody"></div></div></div>
 
 <script>
+  // Detectar dispositivo mobile
+  function isMobileDevice() {
+    return (window.innerWidth <= 768) || 
+           (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+  }
+  
+  // Controle do menu mobile
+  let sidebarOpen = false;
+  const sidebar = document.getElementById('sidebar');
+  const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+  const mobileOverlay = document.getElementById('mobileOverlay');
+  
+  function toggleSidebar() {
+    if (isMobileDevice()) {
+      sidebarOpen = !sidebarOpen;
+      if (sidebarOpen) {
+        sidebar.classList.add('open');
+        mobileOverlay.classList.add('active');
+      } else {
+        sidebar.classList.remove('open');
+        mobileOverlay.classList.remove('active');
+      }
+    }
+  }
+  
+  function closeSidebar() {
+    if (isMobileDevice()) {
+      sidebarOpen = false;
+      sidebar.classList.remove('open');
+      mobileOverlay.classList.remove('active');
+    }
+  }
+  
+  if (mobileMenuBtn) {
+    mobileMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleSidebar();
+    });
+  }
+  
+  if (mobileOverlay) {
+    mobileOverlay.addEventListener('click', closeSidebar);
+  }
+  
+  // Fechar sidebar ao clicar em um nav-item (mobile)
+  function attachNavEventsWithMobile() {
+    document.querySelectorAll(".nav-item").forEach(el => {
+      el.onclick = () => {
+        const tab = el.getAttribute("data-tab");
+        loadTab(tab);
+        document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+        el.classList.add("active");
+        closeSidebar(); // Fecha menu mobile após clicar
+      };
+    });
+  }
+  
   const firebaseConfig = { apiKey: "AIzaSyCTnC0RGSWRcr2ehQGimK6nIra9H8NH8Ks", authDomain: "yk-comunidade.firebaseapp.com", projectId: "yk-comunidade", storageBucket: "yk-comunidade.appspot.com", messagingSenderId: "682166331452", appId: "1:682166331452:web:9e0e8553646d44060ebb39" };
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth(); const db = firebase.firestore(); const storage = firebase.storage();
   const MASTER_EMAIL = "joaodidier@proton.me";
   let currentUser = null, userData = null, isLogin = true;
   let userFavorites = new Set();
-  let activeUploads = new Map(); // Para rastrear uploads ativos
+  let activeUploads = new Map();
   
   function showMessage(text, isError = true) { 
     const div = document.createElement('div'); 
@@ -375,14 +685,11 @@
     setTimeout(() => div.remove(), 3000); 
   }
   
-  // Função de upload MELHORADA com barra de progresso REAL
   async function uploadVideo(file, path, onProgress, onCancel) {
     if(!file) return null;
     const storageRef = storage.ref(path);
     const uploadTask = storageRef.put(file);
     const uploadId = Date.now() + Math.random();
-    
-    // Armazenar a tarefa para possível cancelamento
     activeUploads.set(uploadId, uploadTask);
     
     return new Promise((resolve, reject) => {
@@ -531,7 +838,7 @@
       document.getElementById("app").style.display="flex"; 
       loading.style.display = "none";
       loadTab("inicio"); 
-      attachNavEvents();
+      attachNavEventsWithMobile();
     } else { 
       document.getElementById("loginScreen").style.display="flex"; 
       document.getElementById("app").style.display="none"; 
@@ -540,17 +847,6 @@
       updateAuthUI(); 
     }
   });
-  
-  function attachNavEvents(){ 
-    document.querySelectorAll(".nav-item").forEach(el=>{ 
-      el.onclick=()=>{ 
-        const tab=el.getAttribute("data-tab"); 
-        loadTab(tab); 
-        document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active")); 
-        el.classList.add("active"); 
-      }; 
-    }); 
-  }
   
   const CATEGORIES = ["Ação","Comédia","Drama","Shounen","Isekai","Romance","Fantasia","Terror","Esportes","Mecha","Slice of Life","Shoujo","Aventura","Suspense","Psicológico"];
   
@@ -565,11 +861,10 @@
   }
   
   async function loadInicio(){ 
-    document.getElementById("content").innerHTML = `<div class="inicio-card"><div class="yk-logo" style="margin:0 auto 20px; width:70px; height:70px; font-size:36px; line-height:70px;">YK</div><h2 style="color:#ff9ac2;">✨ YK Server - Site Oficial ✨</h2><p style="font-size:18px; max-width:700px; margin:24px auto;">Aqui você encontra animes e mangás organizados por episódios, tudo em um só lugar!</p><button id="sugestaoBtn" class="btn-sugestao">💡 Enviar sugestão</button><div style="margin-top:35px;">🎮 +250 membros | 70+ canais | Suporte 24/7</div></div>`; 
+    document.getElementById("content").innerHTML = `<div class="inicio-card"><div class="yk-logo" style="margin:0 auto 20px; width:70px; height:70px; font-size:36px; line-height:70px;">YK</div><h2 style="color:#ff9ac2;">✨ YK Server - Site Oficial ✨</h2><p style="font-size:16px; max-width:700px; margin:24px auto;">Aqui você encontra animes e mangás organizados por episódios, tudo em um só lugar!</p><button id="sugestaoBtn" class="btn-sugestao">💡 Enviar sugestão</button><div style="margin-top:35px;">🎮 +250 membros | 70+ canais | Suporte 24/7</div></div>`; 
     document.getElementById("sugestaoBtn")?.addEventListener("click",()=> window.open("https://discord.com/channels/1486530333502476291/1486596998194008184", "_blank")); 
   }
   
-  // Função para criar o componente de upload com barra de progresso
   function createUploadComponent(type, label, onUrlReceived) {
     const container = document.createElement('div');
     container.className = 'upload-container';
@@ -693,7 +988,6 @@
         const episodesDiv = seasonDiv.querySelector(`.episodes-list-${seasonId}`);
         const epDiv = document.createElement('div'); epDiv.className = "episode-item";
         
-        // Criar containers de upload para DUB e LEG
         const dubContainer = createUploadComponent(type, "🎙️ DUBLADO (upload)", (url) => {
           const dubInput = epDiv.querySelector('.ep-dub-link');
           if(dubInput) dubInput.value = url;
@@ -713,12 +1007,10 @@
           <button class="remove-ep" style="background:#a5426a; padding:4px 10px; border-radius:40px;">🗑</button>
         `;
         
-        // Adicionar os componentes de upload
         const audioGroup = epDiv.querySelector('.audio-group');
         audioGroup.children[0].replaceWith(dubContainer);
         audioGroup.children[1].replaceWith(legContainer);
         
-        // Adicionar hidden inputs para armazenar os links
         const dubInput = document.createElement('input');
         dubInput.type = 'hidden';
         dubInput.className = 'ep-dub-link';
@@ -827,7 +1119,7 @@
   
   async function loadEditMode(){
     const content = document.getElementById("content");
-    content.innerHTML = `<div class="admin-form"><h2 style="color:#ff9ac2; margin-bottom:20px;">✏️ MODO EDIÇÃO - GERENCIAR OBRAS ✏️</h2><div style="display:flex; gap:15px; margin-bottom:25px;"><button id="editAnimesBtn" class="filter-chip active">📺 Editar Animes</button><button id="editMangasBtn" class="filter-chip">📚 Editar Mangás</button></div><div id="editGridContainer"></div></div>`;
+    content.innerHTML = `<div class="admin-form"><h2 style="color:#ff9ac2; margin-bottom:20px;">✏️ MODO EDIÇÃO - GERENCIAR OBRAS ✏️</h2><div style="display:flex; gap:15px; margin-bottom:25px; flex-wrap:wrap;"><button id="editAnimesBtn" class="filter-chip active">📺 Editar Animes</button><button id="editMangasBtn" class="filter-chip">📚 Editar Mangás</button></div><div id="editGridContainer"></div></div>`;
     let currentType = "animes";
     async function loadEditGrid(){
       const snapshot = await db.collection(currentType).get();
@@ -1011,7 +1303,7 @@
       html += `<p>Nenhum usuário encontrado.</p>`;
     } else {
       usersList.forEach(u => {
-        html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:#1f1830; margin:8px 0; border-radius:28px;">
+        html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:#1f1830; margin:8px 0; border-radius:28px; flex-wrap:wrap; gap:10px;">
           <div><strong>${escapeHtml(u.name)}</strong><br><small>${u.email}</small></div>
           ${!u.isAdmin && u.email !== MASTER_EMAIL ? 
             `<button class="promote-btn" data-uid="${u.id}" style="background:#ff5a8a; border:none; border-radius:40px; padding:6px 16px; cursor:pointer;">🌸 Promover a Admin</button>` : 
