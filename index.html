@@ -130,11 +130,17 @@
       animation: pulseGlow 1.5s infinite;
     }
     .admin-form { background: rgba(22,16,41,0.9); border-radius: 28px; padding: 24px; margin-bottom: 32px; border: 1px solid rgba(255,90,138,0.3); }
-    .admin-form input, .admin-form textarea { width: 100%; padding: 12px; margin: 8px 0; background: #251f36; border: 1px solid rgba(255,90,138,0.3); border-radius: 24px; color: white; }
+    .admin-form input, .admin-form textarea, .admin-form select { width: 100%; padding: 12px; margin: 8px 0; background: #251f36; border: 1px solid rgba(255,90,138,0.3); border-radius: 24px; color: white; }
     .categories-checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; padding: 12px; background: rgba(37,31,54,0.6); border-radius: 24px; }
     .categories-checkbox-group label { font-size: 12px; display: flex; align-items: center; gap: 5px; }
     .season-item { background: rgba(31,24,48,0.8); padding: 18px; border-radius: 24px; margin-bottom: 18px; }
     .episode-item { background: rgba(42,35,64,0.8); padding: 12px; border-radius: 20px; margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .upload-container { background: #1a1329; border-radius: 20px; padding: 8px; min-width: 200px; }
+    .upload-area { display: flex; flex-direction: column; gap: 5px; }
+    .upload-label { background: #a85c7c; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 11px; text-align: center; transition: 0.2s; }
+    .upload-label:hover { background: #ff5a8a; }
+    .progress-bar-container { width: 100%; height: 20px; background: #2a2340; border-radius: 10px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; background: linear-gradient(90deg,#ff5a8a,#ff3366); width: 0%; transition: width 0.3s; }
     .search-bar { background: rgba(26,19,41,0.8); border-radius: 60px; padding: 8px 20px; margin-bottom: 20px; border: 1px solid rgba(255,90,138,0.3); }
     .search-bar input { background: transparent; border: none; color: white; width: 100%; outline: none; font-size: 14px; }
     .filter-bar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 25px; }
@@ -176,6 +182,11 @@
     .btn-sugestao { background: linear-gradient(135deg,#ff5a8a,#ff3366); padding: 12px 28px; border-radius: 80px; border: none; color: white; font-weight: bold; cursor: pointer; margin-top: 20px; }
     .add-season-btn, .add-ep-btn-season { background: #6a4c7c; padding: 8px 16px; border-radius: 40px; border: none; color: white; cursor: pointer; font-size: 12px; margin-top: 10px; }
     .remove-season-btn, .remove-ep { background: #a5426a; padding: 4px 12px; border-radius: 40px; border: none; color: white; cursor: pointer; font-size: 11px; }
+    .edit-mode-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; margin-top: 20px; }
+    .edit-btn, .delete-btn { position: absolute; background: rgba(0,0,0,0.7); border: none; border-radius: 30px; padding: 4px 8px; cursor: pointer; font-size: 10px; color: white; z-index: 3; }
+    .edit-btn { right: 55px; top: 8px; background: rgba(58,42,85,0.9); }
+    .delete-btn { right: 8px; top: 8px; background: rgba(165,66,106,0.8); }
+    .announcement-card { background: linear-gradient(135deg, rgba(42,26,58,0.9), rgba(31,24,48,0.9)); border-left: 6px solid #ff5a8a; padding: 14px 20px; border-radius: 24px; margin-bottom: 18px; }
   </style>
 </head>
 <body>
@@ -235,12 +246,14 @@
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
   const db = firebase.firestore();
+  const storage = firebase.storage();
   const MASTER_EMAIL = "joaodidier@proton.me";
 
   let currentUser = null;
   let userData = null;
   let isLogin = true;
   let userFavorites = new Set();
+  let activeUploads = new Map();
 
   // ==================== UTILITÁRIOS ====================
   function showMessage(text, isError = true) {
@@ -252,8 +265,87 @@
   }
 
   function escapeHtml(str) { if (!str) return ""; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+  function formatFileSize(b) { if(b<1024) return b+' B'; if(b<1048576) return (b/1024).toFixed(1)+' KB'; return (b/1048576).toFixed(1)+' MB'; }
   function getItemCategories(item) { return item.categories && Array.isArray(item.categories) ? item.categories : (item.category ? [item.category] : []); }
   function isNovidade(date) { if(!date) return false; const d = date.toDate ? date.toDate() : new Date(date); return (new Date()-d)/(1000*3600*24) <= 7; }
+
+  // ==================== UPLOAD ====================
+  async function uploadVideo(file, path, onProgress) {
+    if (!file) return null;
+    const storageRef = storage.ref(path);
+    const uploadTask = storageRef.put(file);
+    const uploadId = Date.now() + Math.random();
+    activeUploads.set(uploadId, uploadTask);
+    return new Promise((resolve, reject) => {
+      uploadTask.on('state_changed',
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          if (onProgress) onProgress({ progress: Math.round(progress), bytesTransferred: snapshot.bytesTransferred, totalBytes: snapshot.totalBytes });
+        },
+        (error) => { activeUploads.delete(uploadId); reject(error); },
+        async () => { activeUploads.delete(uploadId); resolve(await uploadTask.snapshot.ref.getDownloadURL()); }
+      );
+    });
+  }
+  function cancelUpload(uploadId) { const task = activeUploads.get(uploadId); if (task) { task.cancel(); activeUploads.delete(uploadId); return true; } return false; }
+  function createUploadComponent(type, label, onUrlReceived) {
+    const container = document.createElement('div');
+    container.className = 'upload-container';
+    container.innerHTML = `
+      <div class="upload-area">
+        <div class="upload-label">📁 ${label}</div>
+        <input type="file" class="upload-file-input" accept="video/mp4,video/webm,video/mkv" style="display:none;">
+        <div class="file-name"></div>
+        <div class="progress-bar-container" style="display:none;"><div class="progress-bar-fill"></div></div>
+        <div class="upload-status" style="display:none;"><span class="status-text"></span><button class="cancel-upload">Cancelar</button></div>
+        <input type="text" class="upload-link-input" placeholder="Ou cole um link aqui...">
+      </div>
+    `;
+    const fileInput = container.querySelector('.upload-file-input');
+    const uploadLabel = container.querySelector('.upload-label');
+    const fileNameDiv = container.querySelector('.file-name');
+    const progressBar = container.querySelector('.progress-bar-container');
+    const progressFill = container.querySelector('.progress-bar-fill');
+    const statusDiv = container.querySelector('.upload-status');
+    const statusText = container.querySelector('.status-text');
+    const cancelBtn = container.querySelector('.cancel-upload');
+    const linkInput = container.querySelector('.upload-link-input');
+    let currentUploadId = null;
+    uploadLabel.onclick = () => fileInput.click();
+    fileInput.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      fileNameDiv.innerText = `📹 ${file.name} (${formatFileSize(file.size)})`;
+      progressBar.style.display = 'block';
+      statusDiv.style.display = 'flex';
+      progressFill.style.width = '0%';
+      statusText.innerText = '📤 Iniciando upload...';
+      const path = `videos/${type}/${Date.now()}_${file.name.replace(/[^a-z0-9]/gi, '_')}`;
+      try {
+        const url = await uploadVideo(file, path, (p) => {
+          progressFill.style.width = `${p.progress}%`;
+          statusText.innerText = `📤 ${p.progress}% - ${formatFileSize(p.bytesTransferred)} / ${formatFileSize(p.totalBytes)}`;
+        });
+        if (url) {
+          linkInput.value = url;
+          progressBar.style.display = 'none';
+          statusDiv.style.display = 'none';
+          fileNameDiv.innerHTML = `✅ ${file.name} - Enviado!`;
+          onUrlReceived(url);
+        }
+      } catch (error) {
+        statusText.innerText = '❌ Falha no upload! Tente usar link.';
+      }
+    };
+    cancelBtn.onclick = () => {
+      if (currentUploadId && cancelUpload(currentUploadId)) {
+        statusText.innerText = '⏹️ Cancelado';
+        setTimeout(() => { progressBar.style.display = 'none'; statusDiv.style.display = 'none'; }, 2000);
+      }
+    };
+    linkInput.onchange = () => { if (linkInput.value.trim()) onUrlReceived(linkInput.value.trim()); };
+    return container;
+  }
 
   // ==================== AVALIAÇÕES ====================
   async function getAverageRating(animeId) {
@@ -313,7 +405,7 @@
     document.getElementById("sugestaoBtn")?.addEventListener("click",()=>window.open("https://discord.com/channels/1486530333502476291/1486596998194008184","_blank")); 
   }
 
-  // ==================== LOAD MEDIA ====================
+  // ==================== LOAD MEDIA COM BOTÃO DE PUBLICAR ====================
   async function loadMedia(type){
     const content=document.getElementById("content");
     const snap=await db.collection(type).get();
@@ -321,8 +413,83 @@
     items.sort((a,b)=>(b.createdAt?.toDate?.()||0)-(a.createdAt?.toDate?.()||0));
     
     let html=`<div class="search-bar"><input type="text" id="searchInput" placeholder="🔎 Pesquisar..."></div><div class="filter-bar"><div class="filter-chip active" data-cat="Todos">Todos</div>${CATEGORIES.map(c=>`<div class="filter-chip" data-cat="${c}">${c}</div>`).join('')}</div>`;
+    
+    // Formulário de publicação para ADMIN
+    if(userData?.isAdmin){
+      html+=`<div class="admin-form"><h3 style="color:#ff9ac2; margin-bottom:15px;">🌸 PUBLICAR NOVO ${type==="animes"?"ANIME":"MANGÁ"} 🌸</h3>
+        <input id="newTitle" placeholder="Título *">
+        <textarea id="newDesc" rows="2" placeholder="Descrição detalhada"></textarea>
+        <div class="categories-checkbox-group"><strong>Categorias:</strong><br>${CATEGORIES.map(c=>`<label><input type="checkbox" value="${c}" class="cat-checkbox"> ${c}</label>`).join('')}</div>
+        <input id="newImage" placeholder="URL da capa (pôster vertical 600x900)">
+        <div id="seasonsContainer"></div>
+        <button type="button" id="addSeasonBtn" class="add-season-btn">+ Adicionar Temporada</button>
+        <button id="publishBtn" style="background:linear-gradient(135deg,#ff5a8a,#ff3366); margin-top:15px; padding:12px; width:100%; border-radius:60px; border:none; color:white; font-weight:bold;">✨ PUBLICAR OBRA ✨</button></div>`;
+    }
+    
     html+=`<div class="anime-grid" id="mediaGrid"></div>`;
     content.innerHTML=html;
+    
+    // Lógica de publicação para ADMIN
+    if(userData?.isAdmin){
+      let seasonCounter=1;
+      function addSeason(seasonName=null){
+        const container=document.getElementById("seasonsContainer");
+        const seasonId=Date.now()+seasonCounter;
+        const seasonTitle=seasonName||`Temporada ${seasonCounter}`;
+        const div=document.createElement('div'); div.className="season-item"; div.setAttribute("data-season-id",seasonId);
+        div.innerHTML=`<h4>📀 ${escapeHtml(seasonTitle)} <button class="remove-season-btn" style="background:#a5426a; padding:4px 12px; border-radius:40px;">🗑 Remover</button></h4><div class="episodes-list-${seasonId}"></div><button class="add-ep-btn-season" data-season="${seasonId}" style="background:#6a4c7c; padding:6px 12px; border-radius:40px;">+ Episódio</button>`;
+        container.appendChild(div);
+        div.querySelector(".remove-season-btn").onclick=()=>div.remove();
+        div.querySelector(".add-ep-btn-season").onclick=()=>addEpisode(seasonId);
+        seasonCounter++;
+      }
+      function addEpisode(seasonId){
+        const seasonDiv=document.querySelector(`.season-item[data-season-id="${seasonId}"]`);
+        const episodesDiv=seasonDiv.querySelector(`.episodes-list-${seasonId}`);
+        const epDiv=document.createElement('div'); epDiv.className="episode-item";
+        const dubContainer=createUploadComponent(type,"🎙️ DUBLADO (upload)",(url)=>{ const inp=epDiv.querySelector('.ep-dub-link'); if(inp) inp.value=url; });
+        const legContainer=createUploadComponent(type,"📝 LEGENDADO (upload)",(url)=>{ const inp=epDiv.querySelector('.ep-leg-link'); if(inp) inp.value=url; });
+        epDiv.innerHTML=`<input class="ep-name" placeholder="Nome do episódio" style="flex:1; min-width:120px;"><div class="audio-group" style="flex:3; gap:10px;"><div style="flex:1;"></div><div style="flex:1;"></div></div><input class="ep-img" placeholder="URL da imagem" style="flex:0.5;"><button class="remove-ep" style="background:#a5426a; padding:4px 10px; border-radius:40px;">🗑</button>`;
+        const audioGroup=epDiv.querySelector('.audio-group');
+        audioGroup.children[0].replaceWith(dubContainer);
+        audioGroup.children[1].replaceWith(legContainer);
+        const dubInput=document.createElement('input'); dubInput.type='hidden'; dubInput.className='ep-dub-link';
+        const legInput=document.createElement('input'); legInput.type='hidden'; legInput.className='ep-leg-link';
+        epDiv.appendChild(dubInput); epDiv.appendChild(legInput);
+        epDiv.querySelector(".remove-ep").onclick=()=>epDiv.remove();
+        episodesDiv.appendChild(epDiv);
+      }
+      document.getElementById("addSeasonBtn").onclick=()=>addSeason();
+      addSeason("Temporada 1");
+      document.getElementById("publishBtn").onclick=async ()=>{
+        const title=document.getElementById("newTitle").value.trim();
+        const desc=document.getElementById("newDesc").value;
+        const cats=Array.from(document.querySelectorAll(".cat-checkbox:checked")).map(cb=>cb.value);
+        if(!title) return showMessage("Digite um título!");
+        if(!cats.length) return showMessage("Selecione pelo menos uma categoria!");
+        const img=document.getElementById("newImage").value;
+        const seasons={};
+        const seasonDivs=document.querySelectorAll("#seasonsContainer .season-item");
+        for(let sDiv of seasonDivs){
+          let sName=sDiv.querySelector("h4")?.innerText.replace("📀 ","").replace("🗑 Remover","").trim();
+          if(!sName) continue;
+          const eps=[];
+          const epDivs=sDiv.querySelectorAll(".episode-item");
+          for(let epDiv of epDivs){
+            const epName=epDiv.querySelector(".ep-name")?.value.trim();
+            const dubLink=epDiv.querySelector(".ep-dub-link")?.value.trim();
+            const legLink=epDiv.querySelector(".ep-leg-link")?.value.trim();
+            const epImg=epDiv.querySelector(".ep-img")?.value.trim();
+            if(epName && (dubLink||legLink)) eps.push({ name:epName, dubLink:dubLink||"", legLink:legLink||"", imageUrl:epImg||"" });
+          }
+          if(eps.length) seasons[sName]=eps;
+        }
+        if(Object.keys(seasons).length===0) return showMessage("Adicione pelo menos uma temporada com episódios!");
+        await db.collection(type).add({ title, description:desc||"", categories:cats, imageUrl:img, seasons, createdAt:new Date() });
+        showMessage("Publicado!", false);
+        loadMedia(type);
+      };
+    }
     
     let currentFilter="Todos", searchTerm="";
     async function renderGrid(list,filter,search){
@@ -518,18 +685,18 @@
     modal.onclick = (e) => { if(e.target === modal) modal.classList.remove("active"); };
   }
 
-  // ==================== FUNÇÕES ADMIN ====================
+  // ==================== EDIÇÃO COMPLETA ====================
   async function loadEditMode(){
     const content=document.getElementById("content");
-    content.innerHTML=`<div class="admin-form"><h2>✏️ MODO EDIÇÃO</h2><div style="display:flex; gap:15px; margin-bottom:20px;"><button id="editAnimesBtn" class="filter-chip active">📺 Editar Animes</button><button id="editMangasBtn" class="filter-chip">📚 Editar Mangás</button></div><div id="editGrid"></div></div>`;
+    content.innerHTML=`<div class="admin-form"><h2 style="color:#ff9ac2; margin-bottom:20px;">✏️ MODO EDIÇÃO - GERENCIAR OBRAS ✏️</h2><div style="display:flex; gap:15px; margin-bottom:25px;"><button id="editAnimesBtn" class="filter-chip active">📺 Editar Animes</button><button id="editMangasBtn" class="filter-chip">📚 Editar Mangás</button></div><div id="editGridContainer"></div></div>`;
     let currentType="animes";
     async function loadEditGrid(){
       const snap=await db.collection(currentType).get();
-      let items=[]; snap.forEach(d=>items.push({id:d.id,...d.data()}));
-      const gridDiv=document.getElementById("editGrid");
-      if(!items.length){ gridDiv.innerHTML="<p>Nenhum item encontrado</p>"; return; }
-      gridDiv.innerHTML=`<div class="anime-grid">${items.map(item=>`<div class="anime-card" style="position:relative;"><button class="edit-btn" data-id="${item.id}" data-type="${currentType}" style="position:absolute; right:55px; top:8px; background:rgba(58,42,85,0.9); border:none; border-radius:30px; padding:4px 8px; cursor:pointer; font-size:10px; color:white; z-index:3;">✏️ Editar</button><button class="delete-btn" data-id="${item.id}" data-type="${currentType}" style="position:absolute; right:8px; top:8px; background:rgba(165,66,106,0.8); border:none; border-radius:30px; padding:4px 8px; cursor:pointer; font-size:10px; color:white; z-index:3;">🗑</button><div class="anime-image"><img src="${item.imageUrl||'https://placehold.co/600x900?text=YK'}" onerror="this.src='https://placehold.co/600x900?text=Sem+Imagem'"></div><div class="card-content"><h3>${escapeHtml(item.title)}</h3><div class="categories-wrapper">${getItemCategories(item).map(c=>`<span class="category-badge">${escapeHtml(c)}</span>`).join('')}</div><div class="watch-btn">${item.seasons?Object.keys(item.seasons).length:0} temporada(s)</div></div></div>`).join('')}</div>`;
-      document.querySelectorAll(".edit-btn").forEach(btn=>{ btn.onclick=async e=>{ e.stopPropagation(); const id=btn.dataset.id; const type=btn.dataset.type; const doc=await db.collection(type).doc(id).get(); if(doc.exists) openEditModal({id,...doc.data(),type}); }; });
+      let items=[]; snap.forEach(d=>items.push({id:d.id,...d.data(),type:currentType}));
+      const container=document.getElementById("editGridContainer");
+      if(!items.length){ container.innerHTML="<p style='text-align:center;padding:40px;'>Nenhum item encontrado</p>"; return; }
+      container.innerHTML=`<div class="anime-grid">${items.map(item=>`<div class="anime-card" style="position:relative;"><button class="edit-btn" data-id="${item.id}" data-type="${currentType}" style="right:55px;">✏️ Editar</button><button class="delete-btn" data-id="${item.id}" data-type="${currentType}" style="right:8px;">🗑</button><div class="anime-image"><img src="${item.imageUrl||'https://placehold.co/600x900?text=YK'}" onerror="this.src='https://placehold.co/600x900?text=Sem+Imagem'"></div><div class="card-content"><h3>${escapeHtml(item.title)}</h3><div class="categories-wrapper">${getItemCategories(item).map(c=>`<span class="category-badge">${escapeHtml(c)}</span>`).join('')}</div><div class="watch-btn">${item.seasons?Object.keys(item.seasons).length:0} temporada(s)</div></div></div>`).join('')}</div>`;
+      document.querySelectorAll(".edit-btn").forEach(btn=>{ btn.onclick=async e=>{ e.stopPropagation(); const id=btn.dataset.id; const type=btn.dataset.type; const doc=await db.collection(type).doc(id).get(); if(doc.exists) openFullEditModal({id,...doc.data(),type}); }; });
       document.querySelectorAll(".delete-btn").forEach(btn=>{ btn.onclick=async e=>{ e.stopPropagation(); if(confirm("Deletar permanentemente?")){ await db.collection(btn.dataset.type).doc(btn.dataset.id).delete(); showMessage("Deletado!",false); loadEditGrid(); } }; });
     }
     document.getElementById("editAnimesBtn").onclick=()=>{ currentType="animes"; document.getElementById("editAnimesBtn").classList.add("active"); document.getElementById("editMangasBtn").classList.remove("active"); loadEditGrid(); };
@@ -537,15 +704,79 @@
     loadEditGrid();
   }
 
-  function openEditModal(item){
-    showMessage("Edição detalhada - Clique no item para editar campos específicos", false);
+  function openFullEditModal(item){
+    const modalDiv=document.createElement('div'); modalDiv.className='modal-overlay active'; modalDiv.style.visibility='visible'; modalDiv.style.opacity='1';
+    const cats=getItemCategories(item);
+    const seasons=item.seasons||{};
+    let seasonsHtml='';
+    for(let [name,eps] of Object.entries(seasons)){
+      let epsHtml='';
+      eps.forEach((ep,idx)=>{
+        epsHtml+=`<div class="episode-item"><input class="edit-ep-name" value="${escapeHtml(ep.name)}" placeholder="Nome do episódio" style="flex:1;"><div class="audio-group"><input class="edit-ep-dub" value="${escapeHtml(ep.dubLink||'')}" placeholder="Link DUB" style="flex:2;"><input class="edit-ep-leg" value="${escapeHtml(ep.legLink||'')}" placeholder="Link LEG" style="flex:2;"></div><input class="edit-ep-img" value="${escapeHtml(ep.imageUrl||'')}" placeholder="URL da imagem" style="flex:0.5;"><button class="remove-ep-edit" style="background:#a5426a; padding:4px 10px; border-radius:40px;">🗑</button></div>`;
+      });
+      seasonsHtml+=`<div class="season-item" data-season="${name}"><h4>📀 ${escapeHtml(name)} <button class="remove-season-edit" style="background:#a5426a; padding:4px 12px; border-radius:40px;">🗑 Remover</button></h4><div class="season-episodes">${epsHtml}</div><button class="add-ep-in-season" style="background:#6a4c7c; padding:6px 12px; border-radius:40px; margin-top:10px;">+ Episódio</button></div>`;
+    }
+    modalDiv.innerHTML=`<div class="modal-detail" style="max-width:900px; width:95%;"><div class="modal-header"><h2>✏️ Editando: ${escapeHtml(item.title)}</h2><button class="close-modal" id="closeEditModal">✕</button></div><div class="modal-body"><input id="editTitle" value="${escapeHtml(item.title)}" placeholder="Título" style="width:100%; padding:12px; margin:8px 0; background:#251f36; border-radius:24px; color:white;"><textarea id="editDesc" rows="3" placeholder="Descrição" style="width:100%; padding:12px; margin:8px 0; background:#251f36; border-radius:24px; color:white;">${escapeHtml(item.description||'')}</textarea><div class="categories-checkbox-group"><strong>Categorias:</strong><br>${CATEGORIES.map(c=>`<label><input type="checkbox" value="${c}" class="edit-cat-checkbox" ${cats.includes(c)?'checked':''}> ${c}</label>`).join('')}</div><input id="editImage" value="${escapeHtml(item.imageUrl||'')}" placeholder="URL da capa (pôster 600x900)" style="width:100%; padding:12px; margin:8px 0; background:#251f36; border-radius:24px; color:white;"><div id="editSeasonsContainer">${seasonsHtml||'<p>Nenhuma temporada</p>'}</div><button id="addSeasonEditBtn" class="add-season-btn" style="background:#6a4c7c; padding:8px 16px; border-radius:40px; border:none; color:white; cursor:pointer; margin-top:10px;">+ Nova Temporada</button><button id="saveEditBtn" style="background:linear-gradient(135deg,#ff5a8a,#ff3366); margin-top:20px; padding:14px; width:100%; border-radius:60px; border:none; color:white; font-weight:bold;">💾 SALVAR ALTERAÇÕES</button></div></div>`;
+    document.body.appendChild(modalDiv);
+    document.getElementById("closeEditModal").onclick=()=>modalDiv.remove();
+    modalDiv.onclick=e=>{ if(e.target===modalDiv) modalDiv.remove(); };
+    
+    function attachSeasonEvents(div){
+      div.querySelector(".add-ep-in-season")?.addEventListener("click",()=>{
+        const epsDiv=div.querySelector(".season-episodes");
+        const newDiv=document.createElement('div'); newDiv.className="episode-item";
+        newDiv.innerHTML=`<input class="edit-ep-name" placeholder="Nome do episódio" style="flex:1;"><div class="audio-group"><input class="edit-ep-dub" placeholder="Link DUB" style="flex:2;"><input class="edit-ep-leg" placeholder="Link LEG" style="flex:2;"></div><input class="edit-ep-img" placeholder="URL da imagem" style="flex:0.5;"><button class="remove-ep-edit" style="background:#a5426a; padding:4px 10px; border-radius:40px;">🗑</button>`;
+        newDiv.querySelector(".remove-ep-edit").onclick=()=>newDiv.remove();
+        epsDiv.appendChild(newDiv);
+      });
+      div.querySelector(".remove-season-edit")?.addEventListener("click",()=>div.remove());
+    }
+    modalDiv.querySelectorAll(".season-item").forEach(attachSeasonEvents);
+    modalDiv.querySelector("#addSeasonEditBtn").onclick=()=>{
+      const newName=prompt("Nome da nova temporada:");
+      if(!newName) return;
+      const container=modalDiv.querySelector("#editSeasonsContainer");
+      const div=document.createElement('div'); div.className="season-item";
+      div.innerHTML=`<h4>📀 ${escapeHtml(newName)} <button class="remove-season-edit" style="background:#a5426a; padding:4px 12px; border-radius:40px;">🗑 Remover</button></h4><div class="season-episodes"><div class="episode-item"><input class="edit-ep-name" placeholder="Nome do episódio" style="flex:1;"><div class="audio-group"><input class="edit-ep-dub" placeholder="Link DUB" style="flex:2;"><input class="edit-ep-leg" placeholder="Link LEG" style="flex:2;"></div><input class="edit-ep-img" placeholder="URL da imagem" style="flex:0.5;"><button class="remove-ep-edit" style="background:#a5426a; padding:4px 10px; border-radius:40px;">🗑</button></div></div><button class="add-ep-in-season" style="background:#6a4c7c; padding:6px 12px; border-radius:40px; margin-top:10px;">+ Episódio</button>`;
+      attachSeasonEvents(div);
+      container.appendChild(div);
+    };
+    modalDiv.querySelector("#saveEditBtn").onclick=async()=>{
+      const newTitle=modalDiv.querySelector("#editTitle").value.trim();
+      const newDesc=modalDiv.querySelector("#editDesc").value;
+      const newCats=Array.from(modalDiv.querySelectorAll(".edit-cat-checkbox:checked")).map(cb=>cb.value);
+      const newImg=modalDiv.querySelector("#editImage").value;
+      if(!newTitle) return showMessage("Título obrigatório!");
+      if(!newCats.length) return showMessage("Selecione pelo menos uma categoria!");
+      const newSeasons={};
+      const seasonDivs=modalDiv.querySelectorAll("#editSeasonsContainer .season-item");
+      for(let sDiv of seasonDivs){
+        let sName=sDiv.querySelector("h4")?.innerText.replace("📀 ","").replace("🗑 Remover","").trim();
+        if(!sName) continue;
+        const eps=[];
+        const epDivs=sDiv.querySelectorAll(".episode-item");
+        for(let epDiv of epDivs){
+          const epName=epDiv.querySelector(".edit-ep-name")?.value.trim();
+          const dubLink=epDiv.querySelector(".edit-ep-dub")?.value.trim();
+          const legLink=epDiv.querySelector(".edit-ep-leg")?.value.trim();
+          const epImg=epDiv.querySelector(".edit-ep-img")?.value.trim();
+          if(epName && (dubLink||legLink)) eps.push({ name:epName, dubLink:dubLink||"", legLink:legLink||"", imageUrl:epImg||"" });
+        }
+        if(eps.length) newSeasons[sName]=eps;
+      }
+      await db.collection(item.type).doc(item.id).update({ title:newTitle, description:newDesc, categories:newCats, imageUrl:newImg, seasons:newSeasons, updatedAt:new Date() });
+      showMessage("✅ Obra atualizada com sucesso!", false);
+      modalDiv.remove();
+      loadEditMode();
+    };
   }
 
+  // ==================== OUTRAS FUNÇÕES ====================
   async function loadFavoritos(){ 
     if(!currentUser){ document.getElementById("content").innerHTML="<div class='admin-form'>Faça login</div>"; return; } 
     const favDoc=await db.collection("favoritos").doc(currentUser.uid).get(); 
     const favIds=favDoc.exists&&favDoc.data().animes?favDoc.data().animes:[]; 
-    if(!favIds.length){ document.getElementById("content").innerHTML=`<div class="admin-form"><h3>⭐ Favoritos</h3><div class="empty-favorites">Nenhum favorito ainda.</div></div>`; return; } 
+    if(!favIds.length){ document.getElementById("content").innerHTML=`<div class="admin-form"><h3>⭐ Favoritos</h3><div class="empty-favorites" style="text-align:center;padding:50px;color:#aa99cc;">💔 Nenhum favorito ainda.<br>Clique no ❤️ nos cards para adicionar!</div></div>`; return; } 
     let items=[]; 
     for(const t of ["animes","mangas"]){ const snap=await db.collection(t).get(); snap.forEach(doc=>{ if(favIds.includes(doc.id)) items.push({id:doc.id,...doc.data(),type:t}); }); } 
     let html=`<div class="admin-form"><h3>⭐ Seus Favoritos (${items.length})</h3><div class="anime-grid">`+items.map(item=>`<div class="anime-card" data-item='${JSON.stringify(item).replace(/'/g,"&#39;")}'><div class="anime-image"><img src="${item.imageUrl||'https://placehold.co/600x900?text=YK'}" onerror="this.src='https://placehold.co/600x900?text=Sem+Imagem'"></div><div class="card-content"><h3>${escapeHtml(item.title)}</h3><div class="categories-wrapper">${getItemCategories(item).map(c=>`<span class="category-badge">${escapeHtml(c)}</span>`).join('')}</div><div class="watch-btn">🎬 ${item.seasons?Object.keys(item.seasons).length:0} temporada(s)</div></div></div>`).join('')+`</div></div>`; 
@@ -554,7 +785,7 @@
   }
 
   async function loadContinuar() { 
-    if(!currentUser) { document.getElementById("content").innerHTML = "<div class='admin-form'>Faça login</div>"; return; } 
+    if(!currentUser) { document.getElementById("content").innerHTML = "<div class='admin-form'>Faça login para ver seu progresso</div>"; return; } 
     const snap = await db.collection("progresso").where("userId", "==", currentUser.uid).get(); 
     let progressos = []; snap.forEach(doc => progressos.push({ id: doc.id, ...doc.data() })); 
     if(progressos.length === 0) { document.getElementById("content").innerHTML = "<div class='admin-form'><h3>⏯️ Continuar Assistindo</h3><p style='text-align:center;padding:40px;'>Nenhum episódio em andamento.</p></div>"; return; } 
@@ -571,26 +802,26 @@
     const snap=await db.collection("avisos").orderBy("createdAt","desc").get(); 
     let avisos=[]; snap.forEach(d=>avisos.push({id:d.id,...d.data()})); 
     let html=`<div class="admin-form"><h3>📢 Central de Avisos</h3>`; 
-    if(userData?.isAdmin){ html+=`<textarea id="newAvisoMsg" rows="3" placeholder="Escreva um novo aviso..." style="width:100%; background:#251f36; border-radius:20px; padding:12px; margin-bottom:10px;"></textarea><button id="postAvisoBtn" style="background:linear-gradient(135deg,#ff5a8a,#ff3366); padding:10px 24px; border-radius:60px; border:none; color:white; font-weight:bold; cursor:pointer;">📢 Publicar Aviso</button><hr>`; } 
+    if(userData?.isAdmin){ html+=`<textarea id="newAvisoMsg" rows="3" placeholder="Escreva um novo aviso..." style="width:100%; background:#251f36; border-radius:20px; padding:12px; margin-bottom:10px;"></textarea><button id="postAvisoBtn" style="background:linear-gradient(135deg,#ff5a8a,#ff3366); padding:10px 24px; border-radius:60px; border:none; color:white; font-weight:bold; cursor:pointer;">📢 Publicar Aviso</button><hr style="margin:20px 0; border-color:#333;">`; } 
     html+=`<div id="avisosList">`; 
-    if(avisos.length===0) html+=`<p style="text-align:center; padding:20px;">Nenhum aviso ainda.</p>`; 
-    else avisos.forEach(a=>{ html+=`<div style="background:linear-gradient(135deg, rgba(42,26,58,0.9), rgba(31,24,48,0.9)); border-left:6px solid #ff5a8a; padding:14px 20px; border-radius:24px; margin-bottom:18px;"><strong>📣 ${escapeHtml(a.authorName)}</strong> <small>${a.createdAt?.toDate?.().toLocaleString()||''}</small><p style="margin-top:8px;">${escapeHtml(a.message)}</p>${userData?.isAdmin?`<button class="deleteAvisoBtn" data-id="${a.id}" style="background:#a5426a; border:none; border-radius:40px; padding:4px 12px; margin-top:8px; cursor:pointer;">🗑 Remover</button>`:''}</div>`; }); 
+    if(avisos.length===0) html+=`<p style="text-align:center; padding:20px;">Nenhum aviso ainda. Seja o primeiro a publicar!</p>`; 
+    else avisos.forEach(a=>{ html+=`<div class="announcement-card"><strong>📣 ${escapeHtml(a.authorName)}</strong> <small>${a.createdAt?.toDate?.().toLocaleString()||''}</small><p style="margin-top:8px;">${escapeHtml(a.message)}</p>${userData?.isAdmin?`<button class="deleteAvisoBtn" data-id="${a.id}" style="background:#a5426a; border:none; border-radius:40px; padding:4px 12px; margin-top:8px; cursor:pointer;">🗑 Remover</button>`:''}</div>`; }); 
     html+=`</div></div>`; 
     document.getElementById("content").innerHTML=html; 
     if(userData?.isAdmin){ 
-      document.getElementById("postAvisoBtn")?.addEventListener("click",async()=>{ const msg=document.getElementById("newAvisoMsg").value.trim(); if(!msg) return; await db.collection("avisos").add({message:msg,authorName:userData.name,authorId:currentUser.uid,createdAt:new Date()}); showMessage("✅ Aviso publicado!",false); loadAvisos(); }); 
-      document.querySelectorAll(".deleteAvisoBtn").forEach(btn=>{ btn.onclick=async()=>{ if(confirm("Remover?")){ await db.collection("avisos").doc(btn.dataset.id).delete(); loadAvisos(); } }; }); 
+      document.getElementById("postAvisoBtn")?.addEventListener("click",async()=>{ const msg=document.getElementById("newAvisoMsg").value.trim(); if(!msg) return showMessage("Digite uma mensagem!"); await db.collection("avisos").add({message:msg,authorName:userData.name,authorId:currentUser.uid,createdAt:new Date()}); showMessage("✅ Aviso publicado!",false); loadAvisos(); }); 
+      document.querySelectorAll(".deleteAvisoBtn").forEach(btn=>{ btn.onclick=async()=>{ if(confirm("Remover este aviso?")){ await db.collection("avisos").doc(btn.dataset.id).delete(); showMessage("🗑 Aviso removido!",false); loadAvisos(); } }; }); 
     } 
   }
 
   async function loadAdminPanel(){ 
-    if(!userData?.isAdmin){ document.getElementById("content").innerHTML="<div class='admin-form'>🔒 Acesso restrito</div>"; return; } 
+    if(!userData?.isAdmin){ document.getElementById("content").innerHTML="<div class='admin-form'>🔒 Acesso restrito a administradores</div>"; return; } 
     const usersSnapshot=await db.collection("users").get(); 
-    let html=`<div class="admin-form"><h3>👥 Gerenciar Administradores</h3>`; 
-    usersSnapshot.forEach(doc=>{ const u=doc.data(); html+=`<div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:#1f1830; margin:8px 0; border-radius:28px; flex-wrap:wrap;"><div><strong>${escapeHtml(u.name)}</strong><br><small>${u.email}</small></div>${!u.isAdmin && u.email!==MASTER_EMAIL?`<button class="promote-btn" data-uid="${doc.id}" style="background:#ff5a8a; border:none; border-radius:40px; padding:6px 16px; cursor:pointer;">🌸 Promover a Admin</button>`:u.isAdmin?"<span style='color:#ff5a8a;'>✅ Administrador</span>":"<span style='color:#888;'>Usuário comum</span>"}</div>`; }); 
-    html+=`<hr style="margin:20px 0;"><h3>✨ Sistema YK Server</h3><p>⭐ Avaliações por estrelas ativas</p><p>📺 Player de vídeo com navegação</p><p>⏯️ Continuar assistindo funcionando</p></div>`; 
+    let html=`<div class="admin-form"><h3>👥 Gerenciar Administradores</h3><p style="margin-bottom:15px; color:#aaa;">Abaixo estão todos os usuários cadastrados. Promova qualquer um para Admin clicando no botão.</p>`; 
+    usersSnapshot.forEach(doc=>{ const u=doc.data(); html+=`<div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:#1f1830; margin:8px 0; border-radius:28px; flex-wrap:wrap; gap:10px;"><div><strong>${escapeHtml(u.name)}</strong><br><small>${u.email}</small></div>${!u.isAdmin && u.email!==MASTER_EMAIL?`<button class="promote-btn" data-uid="${doc.id}" style="background:#ff5a8a; border:none; border-radius:40px; padding:6px 16px; cursor:pointer;">🌸 Promover a Admin</button>`:u.isAdmin?"<span style='color:#ff5a8a;'>✅ Administrador</span>":"<span style='color:#888;'>Usuário comum</span>"}</div>`; }); 
+    html+=`<hr style="margin:20px 0;"><h3>✨ Informações do Sistema</h3><p>📹 Upload de vídeos com barra de progresso real!</p><p>⭐ Sistema de avaliação por estrelas ativo!</p><p>📺 Player de vídeo com navegação entre episódios</p><p>⏯️ Sistema "Continuar Assistindo" funcionando</p><p>✏️ Edição completa de obras (títulos, categorias, temporadas, episódios)</p><p>📢 Canal de avisos funcionando</p><p>👑 Gerencie administradores aqui</p></div>`; 
     document.getElementById("content").innerHTML=html; 
-    document.querySelectorAll(".promote-btn").forEach(btn=>{ btn.onclick=async()=>{ await db.collection("users").doc(btn.dataset.uid).update({isAdmin:true}); showMessage("✅ Promovido!",false); loadAdminPanel(); }; }); 
+    document.querySelectorAll(".promote-btn").forEach(btn=>{ btn.onclick=async()=>{ await db.collection("users").doc(btn.dataset.uid).update({isAdmin:true}); showMessage("✅ Usuário promovido a administrador!",false); loadAdminPanel(); }; }); 
   }
 
   // ==================== AUTH ====================
@@ -656,9 +887,10 @@
         await db.collection("users").doc(user.uid).set({ name: userName, email: user.email, isAdmin: user.email === MASTER_EMAIL, createdAt: new Date() });
       } else {
         userName = doc.data().name;
+        userData = doc.data();
       }
-      userData = { name: userName, email: user.email, isAdmin: user.email === MASTER_EMAIL };
       currentUser = user;
+      userData = { name: userName, email: user.email, isAdmin: user.email === MASTER_EMAIL };
       document.getElementById("userName").innerText = userName;
       const isAdmin = user.email === MASTER_EMAIL;
       document.getElementById("adminTab").style.display = isAdmin ? "block" : "none";
