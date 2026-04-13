@@ -153,18 +153,13 @@
     .modal-header h2 { color: #ff8ab5; font-size: 24px; }
     .close-modal { background: none; border: none; font-size: 32px; color: #ffb0cc; cursor: pointer; }
     .modal-body { flex: 1; overflow-y: auto; padding: 25px; display: flex; flex-direction: column; gap: 20px; }
-    .player-container { background: #000; border-radius: 24px; overflow: hidden; aspect-ratio: 16/9; width: 100%; }
-    .player-container video, .player-container iframe { width: 100%; height: 100%; border: none; }
-    .episode-nav { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-top: 10px; flex-wrap: wrap; }
-    .nav-btn { background: linear-gradient(135deg,#ff5a8a,#ff3366); border: none; padding: 8px 20px; border-radius: 40px; color: white; font-weight: bold; cursor: pointer; }
-    .nav-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .audio-selector { display: flex; gap: 10px; background: rgba(0,0,0,0.5); padding: 5px 12px; border-radius: 40px; }
-    .audio-option { background: #2f234b; border: none; padding: 5px 15px; border-radius: 30px; color: white; cursor: pointer; }
-    .audio-option.active { background: #ff5a8a; }
-    .episode-info { background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 40px; font-size: 14px; }
-    .episodes-list-modal { display: flex; flex-wrap: wrap; gap: 10px; max-height: 200px; overflow-y: auto; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 24px; }
-    .episode-thumb { background: #2f234b; padding: 8px 12px; border-radius: 30px; cursor: pointer; font-size: 13px; }
-    .episode-thumb:hover, .episode-thumb.active-ep { background: #ff5a8a; }
+    .modal-episode-list { display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto; }
+    .modal-episode-item {
+      background: rgba(42,35,64,0.8); border-radius: 16px; padding: 12px 16px;
+      cursor: pointer; transition: 0.2s; display: flex; justify-content: space-between; align-items: center;
+    }
+    .modal-episode-item:hover { background: #ff5a8a; transform: translateX(5px); }
+    .episode-audio-badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; background: #2f234b; }
     .modal-top { display: flex; flex-wrap: wrap; gap: 25px; margin-bottom: 20px; }
     .modal-image { flex: 0 0 200px; }
     .modal-image img { width: 100%; border-radius: 16px; }
@@ -374,7 +369,7 @@
   async function toggleFavorite(id) { if(!currentUser){ showMessage("Login necessário"); return; } const ref=db.collection("favoritos").doc(currentUser.uid); const doc=await ref.get(); let arr=doc.exists&&doc.data().animes?doc.data().animes:[]; if(userFavorites.has(id)){ arr=arr.filter(i=>i!==id); userFavorites.delete(id); showMessage("❤️ Removido dos favoritos!", false); }else{ arr.push(id); userFavorites.add(id); showMessage("✨ Adicionado aos favoritos!", false); } await ref.set({ animes:arr, userId:currentUser.uid, updatedAt:new Date() }); }
 
   // ==================== CONTINUAR ASSISTINDO ====================
-  async function saveProgress(animeId, seasonName, episodeIndex, currentTime, audioType) { if(!currentUser) return; await db.collection("progresso").doc(`${currentUser.uid}_${animeId}`).set({ userId: currentUser.uid, animeId, seasonName, episodeIndex, currentTime, audioType, updatedAt: new Date() }, { merge: true }); }
+  async function saveProgress(animeId, seasonName, episodeIndex, audioType) { if(!currentUser) return; await db.collection("progresso").doc(`${currentUser.uid}_${animeId}`).set({ userId: currentUser.uid, animeId, seasonName, episodeIndex, audioType, updatedAt: new Date() }, { merge: true }); }
   async function getProgress(animeId) { if(!currentUser) return null; const doc = await db.collection("progresso").doc(`${currentUser.uid}_${animeId}`).get(); return doc.exists ? doc.data() : null; }
 
   // ==================== MOBILE MENU ====================
@@ -405,7 +400,7 @@
     document.getElementById("sugestaoBtn")?.addEventListener("click",()=>window.open("https://discord.com/channels/1486530333502476291/1486596998194008184","_blank")); 
   }
 
-  // ==================== LOAD MEDIA COM BOTÃO DE PUBLICAR ====================
+  // ==================== LOAD MEDIA COM FORMULÁRIO DE PUBLICAÇÃO ====================
   async function loadMedia(type){
     const content=document.getElementById("content");
     const snap=await db.collection(type).get();
@@ -414,7 +409,7 @@
     
     let html=`<div class="search-bar"><input type="text" id="searchInput" placeholder="🔎 Pesquisar..."></div><div class="filter-bar"><div class="filter-chip active" data-cat="Todos">Todos</div>${CATEGORIES.map(c=>`<div class="filter-chip" data-cat="${c}">${c}</div>`).join('')}</div>`;
     
-    // Formulário de publicação para ADMIN
+    // FORMULÁRIO DE PUBLICAÇÃO - SÓ PARA ADMIN
     if(userData?.isAdmin){
       html+=`<div class="admin-form"><h3 style="color:#ff9ac2; margin-bottom:15px;">🌸 PUBLICAR NOVO ${type==="animes"?"ANIME":"MANGÁ"} 🌸</h3>
         <input id="newTitle" placeholder="Título *">
@@ -429,7 +424,7 @@
     html+=`<div class="anime-grid" id="mediaGrid"></div>`;
     content.innerHTML=html;
     
-    // Lógica de publicação para ADMIN
+    // LÓGICA DE PUBLICAÇÃO PARA ADMIN
     if(userData?.isAdmin){
       let seasonCounter=1;
       function addSeason(seasonName=null){
@@ -447,8 +442,8 @@
         const seasonDiv=document.querySelector(`.season-item[data-season-id="${seasonId}"]`);
         const episodesDiv=seasonDiv.querySelector(`.episodes-list-${seasonId}`);
         const epDiv=document.createElement('div'); epDiv.className="episode-item";
-        const dubContainer=createUploadComponent(type,"🎙️ DUBLADO (upload)",(url)=>{ const inp=epDiv.querySelector('.ep-dub-link'); if(inp) inp.value=url; });
-        const legContainer=createUploadComponent(type,"📝 LEGENDADO (upload)",(url)=>{ const inp=epDiv.querySelector('.ep-leg-link'); if(inp) inp.value=url; });
+        const dubContainer=createUploadComponent(type,"🎙️ DUBLADO",(url)=>{ const inp=epDiv.querySelector('.ep-dub-link'); if(inp) inp.value=url; });
+        const legContainer=createUploadComponent(type,"📝 LEGENDADO",(url)=>{ const inp=epDiv.querySelector('.ep-leg-link'); if(inp) inp.value=url; });
         epDiv.innerHTML=`<input class="ep-name" placeholder="Nome do episódio" style="flex:1; min-width:120px;"><div class="audio-group" style="flex:3; gap:10px;"><div style="flex:1;"></div><div style="flex:1;"></div></div><input class="ep-img" placeholder="URL da imagem" style="flex:0.5;"><button class="remove-ep" style="background:#a5426a; padding:4px 10px; border-radius:40px;">🗑</button>`;
         const audioGroup=epDiv.querySelector('.audio-group');
         audioGroup.children[0].replaceWith(dubContainer);
@@ -515,118 +510,67 @@
     await renderGrid(items,"Todos","");
   }
 
-  // ==================== MODAL COM PLAYER ====================
+  // ==================== MODAL COM EPISÓDIOS - ABRE O LINK ====================
   async function openDetailModal(item, savedProgress = null){
     const modal=document.getElementById("detailModal");
     const modalBody=document.getElementById("modalBody");
     const seasons=item.seasons||{};
     const seasonNames=Object.keys(seasons);
     let currentSeason=seasonNames[0]||"";
-    let currentEpisodeIndex=0;
     let currentAudioType="dub";
-    let episodesList=currentSeason? (seasons[currentSeason]||[]) : [];
-    let currentEpisode=episodesList[currentEpisodeIndex]||null;
 
-    if(savedProgress){
-      currentSeason = savedProgress.seasonName;
-      currentEpisodeIndex = savedProgress.episodeIndex;
-      currentAudioType = savedProgress.audioType || "dub";
-      episodesList = seasons[currentSeason] || [];
-      currentEpisode = episodesList[currentEpisodeIndex] || null;
-    } else if(currentUser){
-      const prog = await getProgress(item.id);
-      if(prog && seasons[prog.seasonName] && seasons[prog.seasonName][prog.episodeIndex]){
-        currentSeason = prog.seasonName;
-        currentEpisodeIndex = prog.episodeIndex;
-        currentAudioType = prog.audioType || "dub";
-        episodesList = seasons[currentSeason] || [];
-        currentEpisode = episodesList[currentEpisodeIndex] || null;
-      }
-    }
-
-    function getPlayerHtml(url){
-      if(!url) return `<div style="display:flex;align-items:center;justify-content:center;height:100%;background:#000;color:#fff;">Vídeo indisponível</div>`;
-      if(url.includes("youtube.com/watch") || url.includes("youtu.be")){
-        let videoId="";
-        if(url.includes("youtu.be")) videoId=url.split("/").pop().split("?")[0];
-        else if(url.includes("watch?v=")) videoId=url.split("watch?v=")[1].split("&")[0];
-        return `<iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>`;
+    // Função para abrir o link do episódio
+    function openEpisodeLink(episode, audioType){
+      const url = audioType==="dub" ? episode.dubLink : episode.legLink;
+      if(url){
+        window.open(url, "_blank");
+        // Salvar progresso
+        if(currentUser){
+          const seasonIndex = seasonNames.indexOf(currentSeason);
+          const episodeIndex = (seasons[currentSeason] || []).findIndex(ep => ep.name === episode.name);
+          saveProgress(item.id, currentSeason, episodeIndex, audioType);
+        }
       } else {
-        return `<video controls src="${url}" style="width:100%;height:100%;"></video>`;
+        showMessage("Link não disponível para esta opção de áudio!");
       }
     }
 
-    function loadEpisode(){
-      if(!currentEpisode) return;
-      const url = currentAudioType==="dub" ? currentEpisode.dubLink : currentEpisode.legLink;
-      const playerDiv = document.getElementById("playerContainer");
-      if(playerDiv) playerDiv.innerHTML = getPlayerHtml(url);
-      const video = playerDiv?.querySelector("video");
-      if(video){
-        video.addEventListener("timeupdate", async () => {
-          if(currentUser && video.currentTime > 0){
-            await saveProgress(item.id, currentSeason, currentEpisodeIndex, video.currentTime, currentAudioType);
-          }
-        });
-        if(savedProgress?.currentTime) video.currentTime = savedProgress.currentTime;
+    function renderSeasonEpisodes(seasonName){
+      const episodes = seasons[seasonName] || [];
+      if(episodes.length === 0){
+        return '<div style="text-align:center;padding:20px;">Nenhum episódio cadastrado</div>';
       }
-      const epInfoDiv = document.getElementById("episodeInfo");
-      if(epInfoDiv) epInfoDiv.innerText = `${currentEpisode.name} (${currentAudioType==="dub"?"Dublado":"Legendado"})`;
-      document.querySelectorAll(".episode-thumb").forEach((el,idx)=>{
-        if(idx===currentEpisodeIndex) el.classList.add("active-ep");
-        else el.classList.remove("active-ep");
-      });
-      const prevBtn=document.getElementById("prevEpisodeBtn");
-      const nextBtn=document.getElementById("nextEpisodeBtn");
-      if(prevBtn) prevBtn.disabled = (currentEpisodeIndex===0);
-      if(nextBtn) nextBtn.disabled = (currentEpisodeIndex===episodesList.length-1);
+      return `<div class="modal-episode-list">${episodes.map(ep => `
+        <div class="modal-episode-item" data-ep-name="${escapeHtml(ep.name)}" data-dub-link="${escapeHtml(ep.dubLink||'')}" data-leg-link="${escapeHtml(ep.legLink||'')}">
+          <span>▶ ${escapeHtml(ep.name)}</span>
+          <div style="display:flex; gap:8px;">
+            ${ep.dubLink ? `<span class="episode-audio-badge" data-audio="dub">🎙️ DUB</span>` : ''}
+            ${ep.legLink ? `<span class="episode-audio-badge" data-audio="leg">📝 LEG</span>` : ''}
+          </div>
+        </div>
+      `).join('')}</div>`;
     }
 
-    function changeSeason(seasonName){
-      currentSeason=seasonName;
-      episodesList=seasons[seasonName]||[];
-      currentEpisodeIndex=0;
-      currentEpisode=episodesList[0];
-      const episodesListDiv = document.getElementById("episodesListModal");
-      if(episodesListDiv){
-        episodesListDiv.innerHTML = episodesList.map((ep,idx)=>`<div class="episode-thumb ${idx===0?'active-ep':''}" data-ep-index="${idx}">${escapeHtml(ep.name)}</div>`).join('');
-        episodesListDiv.querySelectorAll(".episode-thumb").forEach(el=>{
-          el.addEventListener("click",()=>{
-            currentEpisodeIndex=parseInt(el.dataset.epIndex);
-            currentEpisode=episodesList[currentEpisodeIndex];
-            loadEpisode();
-            updateAudioSelector();
-          });
-        });
-      }
-      loadEpisode();
-    }
-
-    function updateAudioSelector(){
-      const hasDub = currentEpisode?.dubLink;
-      const hasLeg = currentEpisode?.legLink;
-      const audioDiv = document.getElementById("audioSelector");
-      if(audioDiv){
-        audioDiv.innerHTML = `
-          ${hasDub ? `<button class="audio-option ${currentAudioType==='dub'?'active':''}" data-audio="dub">🎙️ DUB</button>` : ''}
-          ${hasLeg ? `<button class="audio-option ${currentAudioType==='leg'?'active':''}" data-audio="leg">📝 LEG</button>` : ''}
-        `;
-        audioDiv.querySelectorAll(".audio-option").forEach(btn=>{
-          btn.addEventListener("click",()=>{
-            currentAudioType = btn.dataset.audio;
-            loadEpisode();
-            audioDiv.querySelectorAll(".audio-option").forEach(b=>b.classList.remove("active"));
-            btn.classList.add("active");
-          });
-        });
-      }
+    function renderSeasonTabs(){
+      if(seasonNames.length === 0) return '<div>Nenhuma temporada cadastrada</div>';
+      return `
+        <div class="season-tabs" id="seasonTabsModal">
+          ${seasonNames.map(s => `<div class="season-tab" data-season="${s}">${escapeHtml(s)}</div>`).join('')}
+        </div>
+        <div id="episodesListModal">
+          ${renderSeasonEpisodes(currentSeason)}
+        </div>
+      `;
     }
 
     const avgRating = await getAverageRating(item.id);
     const userRating = currentUser ? await getUserRating(item.id, currentUser.uid) : null;
     let starsSelectHtml='';
     if(currentUser){
-      const selectContainer = renderStars(userRating||0, true, async (val)=>{ await setRating(item.id,val); openDetailModal(item); });
+      const selectContainer = renderStars(userRating||0, true, async (val)=>{ 
+        await setRating(item.id, val); 
+        openDetailModal(item); 
+      });
       const wrapper=document.createElement('div'); wrapper.className='modal-rating'; wrapper.innerHTML='<strong>Sua nota:</strong>'; wrapper.appendChild(selectContainer);
       starsSelectHtml=wrapper.outerHTML;
     }
@@ -642,50 +586,80 @@
           <div class="modal-rating"><strong>Média geral:</strong> ${avgRating ? renderStars(parseFloat(avgRating), false) : 'Sem avaliações'}</div>
         </div>
       </div>
-      <div class="player-container" id="playerContainer"></div>
-      <div class="episode-nav">
-        <button class="nav-btn" id="prevEpisodeBtn" ${episodesList.length===0 ? 'disabled' : ''}>◀ Anterior</button>
-        <div class="episode-info" id="episodeInfo">${currentEpisode ? `${currentEpisode.name} (${currentAudioType==="dub"?"Dublado":"Legendado"})` : 'Nenhum episódio'}</div>
-        <div id="audioSelector" class="audio-selector"></div>
-        <button class="nav-btn" id="nextEpisodeBtn" ${episodesList.length===0 ? 'disabled' : ''}>Próximo ▶</button>
-      </div>
       <div>
-        <div class="season-tabs" id="seasonTabs">${seasonNames.map(s=>`<div class="season-tab" data-season="${s}">${escapeHtml(s)}</div>`).join('')}</div>
-        <div class="episodes-list-modal" id="episodesListModal">
-          ${episodesList.map((ep,idx)=>`<div class="episode-thumb ${idx===currentEpisodeIndex?'active-ep':''}" data-ep-index="${idx}">${escapeHtml(ep.name)}</div>`).join('')}
-        </div>
+        ${renderSeasonTabs()}
       </div>
     `;
 
-    if(currentEpisode){
-      const url = currentAudioType==="dub" ? currentEpisode.dubLink : currentEpisode.legLink;
-      document.getElementById("playerContainer").innerHTML = getPlayerHtml(url);
-      document.getElementById("episodeInfo").innerText = `${currentEpisode.name} (${currentAudioType==="dub"?"Dublado":"Legendado"})`;
-    } else {
-      document.getElementById("playerContainer").innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;background:#000;color:#fff;">Nenhum episódio disponível</div>`;
+    // Eventos das temporadas
+    document.querySelectorAll("#seasonTabsModal .season-tab").forEach(tab=>{
+      tab.onclick = () => {
+        document.querySelectorAll("#seasonTabsModal .season-tab").forEach(t=>t.classList.remove("active"));
+        tab.classList.add("active");
+        currentSeason = tab.dataset.season;
+        document.getElementById("episodesListModal").innerHTML = renderSeasonEpisodes(currentSeason);
+        attachEpisodeEvents();
+      };
+    });
+    if(seasonNames.length) document.querySelector("#seasonTabsModal .season-tab")?.classList.add("active");
+
+    function attachEpisodeEvents(){
+      document.querySelectorAll(".modal-episode-item").forEach(el=>{
+        const dubLink = el.dataset.dubLink;
+        const legLink = el.dataset.legLink;
+        const epName = el.dataset.epName;
+        
+        // Se tiver apenas um tipo de áudio, clicar no item inteiro abre com aquele áudio
+        if(dubLink && !legLink){
+          el.style.cursor = "pointer";
+          el.onclick = () => openEpisodeLink({ name: epName, dubLink, legLink: "" }, "dub");
+        } else if(!dubLink && legLink){
+          el.style.cursor = "pointer";
+          el.onclick = () => openEpisodeLink({ name: epName, dubLink: "", legLink }, "leg");
+        } else if(dubLink && legLink){
+          // Se tem ambos, os badges são clicáveis separadamente
+          el.style.cursor = "default";
+          const dubBadge = el.querySelector('.episode-audio-badge[data-audio="dub"]');
+          const legBadge = el.querySelector('.episode-audio-badge[data-audio="leg"]');
+          if(dubBadge) dubBadge.onclick = (e) => { e.stopPropagation(); openEpisodeLink({ name: epName, dubLink, legLink }, "dub"); };
+          if(legBadge) legBadge.onclick = (e) => { e.stopPropagation(); openEpisodeLink({ name: epName, dubLink, legLink }, "leg"); };
+        }
+      });
     }
-    updateAudioSelector();
-
-    const prevBtn = document.getElementById("prevEpisodeBtn");
-    const nextBtn = document.getElementById("nextEpisodeBtn");
-    if(prevBtn) prevBtn.onclick = () => { if(currentEpisodeIndex > 0){ currentEpisodeIndex--; currentEpisode = episodesList[currentEpisodeIndex]; loadEpisode(); updateAudioSelector(); } };
-    if(nextBtn) nextBtn.onclick = () => { if(currentEpisodeIndex < episodesList.length-1){ currentEpisodeIndex++; currentEpisode = episodesList[currentEpisodeIndex]; loadEpisode(); updateAudioSelector(); } };
-
-    document.querySelectorAll(".season-tab").forEach(tab=>{
-      tab.onclick = () => { document.querySelectorAll(".season-tab").forEach(t=>t.classList.remove("active")); tab.classList.add("active"); changeSeason(tab.dataset.season); updateAudioSelector(); };
-    });
-    if(seasonNames.length) document.querySelector(".season-tab")?.classList.add("active");
-
-    document.querySelectorAll(".episode-thumb").forEach(el=>{
-      el.addEventListener("click",()=>{ currentEpisodeIndex = parseInt(el.dataset.epIndex); currentEpisode = episodesList[currentEpisodeIndex]; loadEpisode(); updateAudioSelector(); });
-    });
+    attachEpisodeEvents();
 
     modal.classList.add("active");
     document.getElementById("closeModalBtn").onclick = () => modal.classList.remove("active");
     modal.onclick = (e) => { if(e.target === modal) modal.classList.remove("active"); };
   }
 
-  // ==================== EDIÇÃO COMPLETA ====================
+  // ==================== FUNÇÕES BÁSICAS ====================
+  async function loadFavoritos(){ 
+    if(!currentUser){ document.getElementById("content").innerHTML="<div class='admin-form'>Faça login</div>"; return; } 
+    const favDoc=await db.collection("favoritos").doc(currentUser.uid).get(); 
+    const favIds=favDoc.exists&&favDoc.data().animes?favDoc.data().animes:[]; 
+    if(!favIds.length){ document.getElementById("content").innerHTML=`<div class="admin-form"><h3>⭐ Favoritos</h3><div class="empty-favorites" style="text-align:center;padding:50px;">Nenhum favorito ainda.</div></div>`; return; } 
+    let items=[]; 
+    for(const t of ["animes","mangas"]){ const snap=await db.collection(t).get(); snap.forEach(doc=>{ if(favIds.includes(doc.id)) items.push({id:doc.id,...doc.data(),type:t}); }); } 
+    let html=`<div class="admin-form"><h3>⭐ Seus Favoritos (${items.length})</h3><div class="anime-grid">`+items.map(item=>`<div class="anime-card" data-item='${JSON.stringify(item).replace(/'/g,"&#39;")}'><div class="anime-image"><img src="${item.imageUrl||'https://placehold.co/600x900?text=YK'}" onerror="this.src='https://placehold.co/600x900?text=Sem+Imagem'"></div><div class="card-content"><h3>${escapeHtml(item.title)}</h3><div class="categories-wrapper">${getItemCategories(item).map(c=>`<span class="category-badge">${escapeHtml(c)}</span>`).join('')}</div><div class="watch-btn">🎬 ${item.seasons?Object.keys(item.seasons).length:0} temporada(s)</div></div></div>`).join('')+`</div></div>`; 
+    document.getElementById("content").innerHTML=html; 
+    document.querySelectorAll(".anime-card").forEach(card=>{ card.addEventListener("click",()=>{ const raw=card.dataset.item; if(raw) openDetailModal(JSON.parse(raw)); }); }); 
+  }
+
+  async function loadContinuar() { 
+    if(!currentUser) { document.getElementById("content").innerHTML = "<div class='admin-form'>Faça login</div>"; return; } 
+    const snap = await db.collection("progresso").where("userId", "==", currentUser.uid).get(); 
+    let progressos = []; snap.forEach(doc => progressos.push({ id: doc.id, ...doc.data() })); 
+    if(progressos.length === 0) { document.getElementById("content").innerHTML = "<div class='admin-form'><h3>⏯️ Continuar Assistindo</h3><p style='text-align:center;padding:40px;'>Nenhum episódio em andamento.</p></div>"; return; } 
+    let items = []; 
+    for(let prog of progressos){ const animeDoc = await db.collection("animes").doc(prog.animeId).get(); if(animeDoc.exists){ items.push({ ...animeDoc.data(), id: prog.animeId, progress: prog }); } } 
+    let html = `<div class="admin-form"><h3>⏯️ Continuar Assistindo</h3><div class="anime-grid">`; 
+    for(let item of items){ const season = item.seasons[item.progress.seasonName]; const episode = season ? season[item.progress.episodeIndex] : null; html += `<div class="anime-card" data-item='${JSON.stringify({ id: item.id, ...item }).replace(/'/g, "&#39;")}' data-progress='${JSON.stringify(item.progress).replace(/'/g, "&#39;")}'><div class="anime-image"><img src="${item.imageUrl||'https://placehold.co/600x900?text=YK'}" onerror="this.src='https://placehold.co/600x900?text=Sem+Imagem'"></div><div class="card-content"><h3>${escapeHtml(item.title)}</h3><div class="categories-wrapper">${getItemCategories(item).map(c=>`<span class="category-badge">${escapeHtml(c)}</span>`).join('')}</div><div style="font-size:12px; margin:5px 0;">${escapeHtml(item.progress.seasonName)} - ${episode ? escapeHtml(episode.name) : 'Episódio'}</div><div class="watch-btn">▶️ Continuar</div></div></div>`; } 
+    html += `</div></div>`; 
+    document.getElementById("content").innerHTML = html; 
+    document.querySelectorAll(".anime-card").forEach(card => { card.addEventListener("click", (e) => { const raw = card.dataset.item; const prog = JSON.parse(card.dataset.progress); if(raw) openDetailModal(JSON.parse(raw), prog); }); }); 
+  }
+
   async function loadEditMode(){
     const content=document.getElementById("content");
     content.innerHTML=`<div class="admin-form"><h2 style="color:#ff9ac2; margin-bottom:20px;">✏️ MODO EDIÇÃO - GERENCIAR OBRAS ✏️</h2><div style="display:flex; gap:15px; margin-bottom:25px;"><button id="editAnimesBtn" class="filter-chip active">📺 Editar Animes</button><button id="editMangasBtn" class="filter-chip">📚 Editar Mangás</button></div><div id="editGridContainer"></div></div>`;
@@ -705,97 +679,7 @@
   }
 
   function openFullEditModal(item){
-    const modalDiv=document.createElement('div'); modalDiv.className='modal-overlay active'; modalDiv.style.visibility='visible'; modalDiv.style.opacity='1';
-    const cats=getItemCategories(item);
-    const seasons=item.seasons||{};
-    let seasonsHtml='';
-    for(let [name,eps] of Object.entries(seasons)){
-      let epsHtml='';
-      eps.forEach((ep,idx)=>{
-        epsHtml+=`<div class="episode-item"><input class="edit-ep-name" value="${escapeHtml(ep.name)}" placeholder="Nome do episódio" style="flex:1;"><div class="audio-group"><input class="edit-ep-dub" value="${escapeHtml(ep.dubLink||'')}" placeholder="Link DUB" style="flex:2;"><input class="edit-ep-leg" value="${escapeHtml(ep.legLink||'')}" placeholder="Link LEG" style="flex:2;"></div><input class="edit-ep-img" value="${escapeHtml(ep.imageUrl||'')}" placeholder="URL da imagem" style="flex:0.5;"><button class="remove-ep-edit" style="background:#a5426a; padding:4px 10px; border-radius:40px;">🗑</button></div>`;
-      });
-      seasonsHtml+=`<div class="season-item" data-season="${name}"><h4>📀 ${escapeHtml(name)} <button class="remove-season-edit" style="background:#a5426a; padding:4px 12px; border-radius:40px;">🗑 Remover</button></h4><div class="season-episodes">${epsHtml}</div><button class="add-ep-in-season" style="background:#6a4c7c; padding:6px 12px; border-radius:40px; margin-top:10px;">+ Episódio</button></div>`;
-    }
-    modalDiv.innerHTML=`<div class="modal-detail" style="max-width:900px; width:95%;"><div class="modal-header"><h2>✏️ Editando: ${escapeHtml(item.title)}</h2><button class="close-modal" id="closeEditModal">✕</button></div><div class="modal-body"><input id="editTitle" value="${escapeHtml(item.title)}" placeholder="Título" style="width:100%; padding:12px; margin:8px 0; background:#251f36; border-radius:24px; color:white;"><textarea id="editDesc" rows="3" placeholder="Descrição" style="width:100%; padding:12px; margin:8px 0; background:#251f36; border-radius:24px; color:white;">${escapeHtml(item.description||'')}</textarea><div class="categories-checkbox-group"><strong>Categorias:</strong><br>${CATEGORIES.map(c=>`<label><input type="checkbox" value="${c}" class="edit-cat-checkbox" ${cats.includes(c)?'checked':''}> ${c}</label>`).join('')}</div><input id="editImage" value="${escapeHtml(item.imageUrl||'')}" placeholder="URL da capa (pôster 600x900)" style="width:100%; padding:12px; margin:8px 0; background:#251f36; border-radius:24px; color:white;"><div id="editSeasonsContainer">${seasonsHtml||'<p>Nenhuma temporada</p>'}</div><button id="addSeasonEditBtn" class="add-season-btn" style="background:#6a4c7c; padding:8px 16px; border-radius:40px; border:none; color:white; cursor:pointer; margin-top:10px;">+ Nova Temporada</button><button id="saveEditBtn" style="background:linear-gradient(135deg,#ff5a8a,#ff3366); margin-top:20px; padding:14px; width:100%; border-radius:60px; border:none; color:white; font-weight:bold;">💾 SALVAR ALTERAÇÕES</button></div></div>`;
-    document.body.appendChild(modalDiv);
-    document.getElementById("closeEditModal").onclick=()=>modalDiv.remove();
-    modalDiv.onclick=e=>{ if(e.target===modalDiv) modalDiv.remove(); };
-    
-    function attachSeasonEvents(div){
-      div.querySelector(".add-ep-in-season")?.addEventListener("click",()=>{
-        const epsDiv=div.querySelector(".season-episodes");
-        const newDiv=document.createElement('div'); newDiv.className="episode-item";
-        newDiv.innerHTML=`<input class="edit-ep-name" placeholder="Nome do episódio" style="flex:1;"><div class="audio-group"><input class="edit-ep-dub" placeholder="Link DUB" style="flex:2;"><input class="edit-ep-leg" placeholder="Link LEG" style="flex:2;"></div><input class="edit-ep-img" placeholder="URL da imagem" style="flex:0.5;"><button class="remove-ep-edit" style="background:#a5426a; padding:4px 10px; border-radius:40px;">🗑</button>`;
-        newDiv.querySelector(".remove-ep-edit").onclick=()=>newDiv.remove();
-        epsDiv.appendChild(newDiv);
-      });
-      div.querySelector(".remove-season-edit")?.addEventListener("click",()=>div.remove());
-    }
-    modalDiv.querySelectorAll(".season-item").forEach(attachSeasonEvents);
-    modalDiv.querySelector("#addSeasonEditBtn").onclick=()=>{
-      const newName=prompt("Nome da nova temporada:");
-      if(!newName) return;
-      const container=modalDiv.querySelector("#editSeasonsContainer");
-      const div=document.createElement('div'); div.className="season-item";
-      div.innerHTML=`<h4>📀 ${escapeHtml(newName)} <button class="remove-season-edit" style="background:#a5426a; padding:4px 12px; border-radius:40px;">🗑 Remover</button></h4><div class="season-episodes"><div class="episode-item"><input class="edit-ep-name" placeholder="Nome do episódio" style="flex:1;"><div class="audio-group"><input class="edit-ep-dub" placeholder="Link DUB" style="flex:2;"><input class="edit-ep-leg" placeholder="Link LEG" style="flex:2;"></div><input class="edit-ep-img" placeholder="URL da imagem" style="flex:0.5;"><button class="remove-ep-edit" style="background:#a5426a; padding:4px 10px; border-radius:40px;">🗑</button></div></div><button class="add-ep-in-season" style="background:#6a4c7c; padding:6px 12px; border-radius:40px; margin-top:10px;">+ Episódio</button>`;
-      attachSeasonEvents(div);
-      container.appendChild(div);
-    };
-    modalDiv.querySelector("#saveEditBtn").onclick=async()=>{
-      const newTitle=modalDiv.querySelector("#editTitle").value.trim();
-      const newDesc=modalDiv.querySelector("#editDesc").value;
-      const newCats=Array.from(modalDiv.querySelectorAll(".edit-cat-checkbox:checked")).map(cb=>cb.value);
-      const newImg=modalDiv.querySelector("#editImage").value;
-      if(!newTitle) return showMessage("Título obrigatório!");
-      if(!newCats.length) return showMessage("Selecione pelo menos uma categoria!");
-      const newSeasons={};
-      const seasonDivs=modalDiv.querySelectorAll("#editSeasonsContainer .season-item");
-      for(let sDiv of seasonDivs){
-        let sName=sDiv.querySelector("h4")?.innerText.replace("📀 ","").replace("🗑 Remover","").trim();
-        if(!sName) continue;
-        const eps=[];
-        const epDivs=sDiv.querySelectorAll(".episode-item");
-        for(let epDiv of epDivs){
-          const epName=epDiv.querySelector(".edit-ep-name")?.value.trim();
-          const dubLink=epDiv.querySelector(".edit-ep-dub")?.value.trim();
-          const legLink=epDiv.querySelector(".edit-ep-leg")?.value.trim();
-          const epImg=epDiv.querySelector(".edit-ep-img")?.value.trim();
-          if(epName && (dubLink||legLink)) eps.push({ name:epName, dubLink:dubLink||"", legLink:legLink||"", imageUrl:epImg||"" });
-        }
-        if(eps.length) newSeasons[sName]=eps;
-      }
-      await db.collection(item.type).doc(item.id).update({ title:newTitle, description:newDesc, categories:newCats, imageUrl:newImg, seasons:newSeasons, updatedAt:new Date() });
-      showMessage("✅ Obra atualizada com sucesso!", false);
-      modalDiv.remove();
-      loadEditMode();
-    };
-  }
-
-  // ==================== OUTRAS FUNÇÕES ====================
-  async function loadFavoritos(){ 
-    if(!currentUser){ document.getElementById("content").innerHTML="<div class='admin-form'>Faça login</div>"; return; } 
-    const favDoc=await db.collection("favoritos").doc(currentUser.uid).get(); 
-    const favIds=favDoc.exists&&favDoc.data().animes?favDoc.data().animes:[]; 
-    if(!favIds.length){ document.getElementById("content").innerHTML=`<div class="admin-form"><h3>⭐ Favoritos</h3><div class="empty-favorites" style="text-align:center;padding:50px;color:#aa99cc;">💔 Nenhum favorito ainda.<br>Clique no ❤️ nos cards para adicionar!</div></div>`; return; } 
-    let items=[]; 
-    for(const t of ["animes","mangas"]){ const snap=await db.collection(t).get(); snap.forEach(doc=>{ if(favIds.includes(doc.id)) items.push({id:doc.id,...doc.data(),type:t}); }); } 
-    let html=`<div class="admin-form"><h3>⭐ Seus Favoritos (${items.length})</h3><div class="anime-grid">`+items.map(item=>`<div class="anime-card" data-item='${JSON.stringify(item).replace(/'/g,"&#39;")}'><div class="anime-image"><img src="${item.imageUrl||'https://placehold.co/600x900?text=YK'}" onerror="this.src='https://placehold.co/600x900?text=Sem+Imagem'"></div><div class="card-content"><h3>${escapeHtml(item.title)}</h3><div class="categories-wrapper">${getItemCategories(item).map(c=>`<span class="category-badge">${escapeHtml(c)}</span>`).join('')}</div><div class="watch-btn">🎬 ${item.seasons?Object.keys(item.seasons).length:0} temporada(s)</div></div></div>`).join('')+`</div></div>`; 
-    document.getElementById("content").innerHTML=html; 
-    document.querySelectorAll(".anime-card").forEach(card=>{ card.addEventListener("click",()=>{ const raw=card.dataset.item; if(raw) openDetailModal(JSON.parse(raw)); }); }); 
-  }
-
-  async function loadContinuar() { 
-    if(!currentUser) { document.getElementById("content").innerHTML = "<div class='admin-form'>Faça login para ver seu progresso</div>"; return; } 
-    const snap = await db.collection("progresso").where("userId", "==", currentUser.uid).get(); 
-    let progressos = []; snap.forEach(doc => progressos.push({ id: doc.id, ...doc.data() })); 
-    if(progressos.length === 0) { document.getElementById("content").innerHTML = "<div class='admin-form'><h3>⏯️ Continuar Assistindo</h3><p style='text-align:center;padding:40px;'>Nenhum episódio em andamento.</p></div>"; return; } 
-    let items = []; 
-    for(let prog of progressos){ const animeDoc = await db.collection("animes").doc(prog.animeId).get(); if(animeDoc.exists){ items.push({ ...animeDoc.data(), id: prog.animeId, progress: prog }); } } 
-    let html = `<div class="admin-form"><h3>⏯️ Continuar Assistindo</h3><div class="anime-grid">`; 
-    for(let item of items){ const season = item.seasons[item.progress.seasonName]; const episode = season ? season[item.progress.episodeIndex] : null; html += `<div class="anime-card" data-item='${JSON.stringify({ id: item.id, ...item }).replace(/'/g, "&#39;")}' data-progress='${JSON.stringify(item.progress).replace(/'/g, "&#39;")}'><div class="anime-image"><img src="${item.imageUrl||'https://placehold.co/600x900?text=YK'}" onerror="this.src='https://placehold.co/600x900?text=Sem+Imagem'"></div><div class="card-content"><h3>${escapeHtml(item.title)}</h3><div class="categories-wrapper">${getItemCategories(item).map(c=>`<span class="category-badge">${escapeHtml(c)}</span>`).join('')}</div><div style="font-size:12px; margin:5px 0;">${escapeHtml(item.progress.seasonName)} - ${episode ? escapeHtml(episode.name) : 'Episódio'}</div><div class="watch-btn">▶️ Continuar</div></div></div>`; } 
-    html += `</div></div>`; 
-    document.getElementById("content").innerHTML = html; 
-    document.querySelectorAll(".anime-card").forEach(card => { card.addEventListener("click", (e) => { const raw = card.dataset.item; const prog = JSON.parse(card.dataset.progress); if(raw) openDetailModal(JSON.parse(raw), prog); }); }); 
+    showMessage("Edição completa em desenvolvimento - Use o Firebase Console para editar", false);
   }
 
   async function loadAvisos(){ 
@@ -804,24 +688,24 @@
     let html=`<div class="admin-form"><h3>📢 Central de Avisos</h3>`; 
     if(userData?.isAdmin){ html+=`<textarea id="newAvisoMsg" rows="3" placeholder="Escreva um novo aviso..." style="width:100%; background:#251f36; border-radius:20px; padding:12px; margin-bottom:10px;"></textarea><button id="postAvisoBtn" style="background:linear-gradient(135deg,#ff5a8a,#ff3366); padding:10px 24px; border-radius:60px; border:none; color:white; font-weight:bold; cursor:pointer;">📢 Publicar Aviso</button><hr style="margin:20px 0; border-color:#333;">`; } 
     html+=`<div id="avisosList">`; 
-    if(avisos.length===0) html+=`<p style="text-align:center; padding:20px;">Nenhum aviso ainda. Seja o primeiro a publicar!</p>`; 
+    if(avisos.length===0) html+=`<p style="text-align:center; padding:20px;">Nenhum aviso ainda.</p>`; 
     else avisos.forEach(a=>{ html+=`<div class="announcement-card"><strong>📣 ${escapeHtml(a.authorName)}</strong> <small>${a.createdAt?.toDate?.().toLocaleString()||''}</small><p style="margin-top:8px;">${escapeHtml(a.message)}</p>${userData?.isAdmin?`<button class="deleteAvisoBtn" data-id="${a.id}" style="background:#a5426a; border:none; border-radius:40px; padding:4px 12px; margin-top:8px; cursor:pointer;">🗑 Remover</button>`:''}</div>`; }); 
     html+=`</div></div>`; 
     document.getElementById("content").innerHTML=html; 
     if(userData?.isAdmin){ 
-      document.getElementById("postAvisoBtn")?.addEventListener("click",async()=>{ const msg=document.getElementById("newAvisoMsg").value.trim(); if(!msg) return showMessage("Digite uma mensagem!"); await db.collection("avisos").add({message:msg,authorName:userData.name,authorId:currentUser.uid,createdAt:new Date()}); showMessage("✅ Aviso publicado!",false); loadAvisos(); }); 
-      document.querySelectorAll(".deleteAvisoBtn").forEach(btn=>{ btn.onclick=async()=>{ if(confirm("Remover este aviso?")){ await db.collection("avisos").doc(btn.dataset.id).delete(); showMessage("🗑 Aviso removido!",false); loadAvisos(); } }; }); 
+      document.getElementById("postAvisoBtn")?.addEventListener("click",async()=>{ const msg=document.getElementById("newAvisoMsg").value.trim(); if(!msg) return; await db.collection("avisos").add({message:msg,authorName:userData.name,authorId:currentUser.uid,createdAt:new Date()}); showMessage("✅ Aviso publicado!",false); loadAvisos(); }); 
+      document.querySelectorAll(".deleteAvisoBtn").forEach(btn=>{ btn.onclick=async()=>{ if(confirm("Remover?")){ await db.collection("avisos").doc(btn.dataset.id).delete(); loadAvisos(); } }; }); 
     } 
   }
 
   async function loadAdminPanel(){ 
-    if(!userData?.isAdmin){ document.getElementById("content").innerHTML="<div class='admin-form'>🔒 Acesso restrito a administradores</div>"; return; } 
+    if(!userData?.isAdmin){ document.getElementById("content").innerHTML="<div class='admin-form'>🔒 Acesso restrito</div>"; return; } 
     const usersSnapshot=await db.collection("users").get(); 
-    let html=`<div class="admin-form"><h3>👥 Gerenciar Administradores</h3><p style="margin-bottom:15px; color:#aaa;">Abaixo estão todos os usuários cadastrados. Promova qualquer um para Admin clicando no botão.</p>`; 
-    usersSnapshot.forEach(doc=>{ const u=doc.data(); html+=`<div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:#1f1830; margin:8px 0; border-radius:28px; flex-wrap:wrap; gap:10px;"><div><strong>${escapeHtml(u.name)}</strong><br><small>${u.email}</small></div>${!u.isAdmin && u.email!==MASTER_EMAIL?`<button class="promote-btn" data-uid="${doc.id}" style="background:#ff5a8a; border:none; border-radius:40px; padding:6px 16px; cursor:pointer;">🌸 Promover a Admin</button>`:u.isAdmin?"<span style='color:#ff5a8a;'>✅ Administrador</span>":"<span style='color:#888;'>Usuário comum</span>"}</div>`; }); 
-    html+=`<hr style="margin:20px 0;"><h3>✨ Informações do Sistema</h3><p>📹 Upload de vídeos com barra de progresso real!</p><p>⭐ Sistema de avaliação por estrelas ativo!</p><p>📺 Player de vídeo com navegação entre episódios</p><p>⏯️ Sistema "Continuar Assistindo" funcionando</p><p>✏️ Edição completa de obras (títulos, categorias, temporadas, episódios)</p><p>📢 Canal de avisos funcionando</p><p>👑 Gerencie administradores aqui</p></div>`; 
+    let html=`<div class="admin-form"><h3>👥 Gerenciar Administradores</h3><p style="margin-bottom:15px; color:#aaa;">Promova usuários para Admin.</p>`; 
+    usersSnapshot.forEach(doc=>{ const u=doc.data(); html+=`<div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:#1f1830; margin:8px 0; border-radius:28px; flex-wrap:wrap;"><div><strong>${escapeHtml(u.name)}</strong><br><small>${u.email}</small></div>${!u.isAdmin && u.email!==MASTER_EMAIL?`<button class="promote-btn" data-uid="${doc.id}" style="background:#ff5a8a; border:none; border-radius:40px; padding:6px 16px; cursor:pointer;">🌸 Promover a Admin</button>`:u.isAdmin?"<span style='color:#ff5a8a;'>✅ Administrador</span>":"<span style='color:#888;'>Usuário comum</span>"}</div>`; }); 
+    html+=`<hr style="margin:20px 0;"><h3>✨ Informações do Sistema</h3><p>⭐ Sistema de avaliação por estrelas ativo!</p><p>📺 Clique no episódio para abrir o link</p><p>📢 Canal de avisos funcionando</p></div>`; 
     document.getElementById("content").innerHTML=html; 
-    document.querySelectorAll(".promote-btn").forEach(btn=>{ btn.onclick=async()=>{ await db.collection("users").doc(btn.dataset.uid).update({isAdmin:true}); showMessage("✅ Usuário promovido a administrador!",false); loadAdminPanel(); }; }); 
+    document.querySelectorAll(".promote-btn").forEach(btn=>{ btn.onclick=async()=>{ await db.collection("users").doc(btn.dataset.uid).update({isAdmin:true}); showMessage("✅ Promovido!",false); loadAdminPanel(); }; }); 
   }
 
   // ==================== AUTH ====================
