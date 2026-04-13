@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
-  <title>YK Server · Animes & Games</title>
+  <title>YK Server · Animes & Games [BETA]</title>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -22,6 +22,8 @@
     @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes pulseGlow { 0%,100% { box-shadow: 0 0 5px rgba(255,90,138,0.3); } 50% { box-shadow: 0 0 25px rgba(255,90,138,0.7); } }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes starBounce { 0% { transform: scale(1); } 50% { transform: scale(1.3); } 100% { transform: scale(1); } }
+    @keyframes betaPulse { 0% { opacity: 0.7; } 50% { opacity: 1; text-shadow: 0 0 5px #ff5a8a; } 100% { opacity: 0.7; } }
     .toast {
       position: fixed; top: 30px; left: 50%; transform: translateX(-50%);
       background: #ff3366; color: white; padding: 12px 28px; border-radius: 60px;
@@ -29,6 +31,23 @@
       max-width: 90vw; text-align: center; animation: fadeInUp 0.3s ease;
     }
     .toast.success { background: #4caf50; }
+    .beta-banner {
+      background: linear-gradient(135deg, #ff5a8a, #ff3366);
+      text-align: center;
+      padding: 6px;
+      font-size: 12px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      animation: betaPulse 2s infinite;
+    }
+    .credit-footer {
+      text-align: center;
+      padding: 15px;
+      font-size: 12px;
+      color: #aa99cc;
+      border-top: 1px solid rgba(255,90,138,0.2);
+      margin-top: 20px;
+    }
     .login-screen {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: radial-gradient(circle at 30% 20%, #1a0f2e, #0a0512);
@@ -111,8 +130,8 @@
     .card-content h3 { font-size: 15px; margin-bottom: 6px; color: #ffc0dd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .categories-wrapper { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
     .category-badge { font-size: 11px; background: linear-gradient(135deg, rgba(79,58,108,0.9), rgba(55,40,80,0.9)); padding: 4px 10px; border-radius: 30px; color: #ffcfdf; }
-    .rating-stars { display: flex; align-items: center; gap: 4px; margin: 8px 0 4px; font-size: 14px; }
-    .star-filled { color: #ffcc00; }
+    .rating-stars { display: flex; align-items: center; gap: 4px; margin: 8px 0; font-size: 16px; }
+    .star-filled { color: #ffcc00; text-shadow: 0 0 2px #ff9900; }
     .star-empty { color: #555; }
     .rating-value { font-size: 11px; margin-left: 6px; color: #ffc0dd; }
     .watch-btn { margin-top: 8px; padding: 6px; background: linear-gradient(135deg,#ff5a8a,#ff3366); text-align: center; border-radius: 30px; font-weight: bold; font-size: 12px; cursor: pointer; }
@@ -130,7 +149,7 @@
       animation: pulseGlow 1.5s infinite;
     }
     .admin-form { background: rgba(22,16,41,0.9); border-radius: 28px; padding: 24px; margin-bottom: 32px; border: 1px solid rgba(255,90,138,0.3); }
-    .admin-form input, .admin-form textarea, .admin-form select { width: 100%; padding: 12px; margin: 8px 0; background: #251f36; border: 1px solid rgba(255,90,138,0.3); border-radius: 24px; color: white; }
+    .admin-form input, .admin-form textarea { width: 100%; padding: 12px; margin: 8px 0; background: #251f36; border: 1px solid rgba(255,90,138,0.3); border-radius: 24px; color: white; }
     .categories-checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; padding: 12px; background: rgba(37,31,54,0.6); border-radius: 24px; }
     .categories-checkbox-group label { font-size: 12px; display: flex; align-items: center; gap: 5px; }
     .season-item { background: rgba(31,24,48,0.8); padding: 18px; border-radius: 24px; margin-bottom: 18px; }
@@ -170,6 +189,7 @@
     .star-rating-select { display: flex; gap: 8px; cursor: pointer; }
     .star-select { font-size: 32px; color: #555; transition: 0.2s; }
     .star-select:hover { color: #ffcc00; transform: scale(1.2); }
+    .star-select.rated { color: #ffcc00; animation: starBounce 0.3s ease; }
     .season-tabs { display: flex; flex-wrap: wrap; gap: 10px; margin: 15px 0; border-bottom: 1px solid rgba(255,90,138,0.3); padding-bottom: 12px; }
     .season-tab { background: #2f234b; padding: 6px 20px; border-radius: 40px; cursor: pointer; font-weight: bold; font-size: 13px; }
     .season-tab.active { background: linear-gradient(135deg,#ff5a8a,#ff3366); color: white; }
@@ -182,9 +202,15 @@
     .edit-btn { right: 55px; top: 8px; background: rgba(58,42,85,0.9); }
     .delete-btn { right: 8px; top: 8px; background: rgba(165,66,106,0.8); }
     .announcement-card { background: linear-gradient(135deg, rgba(42,26,58,0.9), rgba(31,24,48,0.9)); border-left: 6px solid #ff5a8a; padding: 14px 20px; border-radius: 24px; margin-bottom: 18px; }
+    .edit-form-modal { background: #1c152e; border-radius: 32px; padding: 25px; max-width: 800px; width: 95%; max-height: 85vh; overflow-y: auto; }
+    .edit-form-modal input, .edit-form-modal textarea { width: 100%; padding: 12px; margin: 8px 0; background: #251f36; border: 1px solid rgba(255,90,138,0.3); border-radius: 20px; color: white; }
+    .edit-form-modal .season-edit-item { background: rgba(31,24,48,0.8); padding: 15px; border-radius: 20px; margin-bottom: 15px; }
+    .edit-form-modal .episode-edit-item { background: rgba(42,35,64,0.8); padding: 12px; border-radius: 16px; margin-bottom: 10px; }
+    .edit-season-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
   </style>
 </head>
 <body>
+<div class="beta-banner">⚠️ BETA VERSÃO - Site em desenvolvimento | Recursos sendo implementados ⚠️</div>
 <div id="loginScreen" class="login-screen">
   <div class="login-card">
     <h2>🌸 YK Server 🌸</h2>
@@ -224,6 +250,7 @@
     </div>
     <div class="content-area" id="content"></div>
   </div>
+  <div class="credit-footer">✨ Feito por Sylnar | YK Server © 2025 ✨</div>
 </div>
 <div id="mobileOverlay" class="mobile-overlay"></div>
 <div id="detailModal" class="modal-overlay"><div class="modal-detail"><div class="modal-header"><h2>📘 Ficha completa</h2><button class="close-modal" id="closeModalBtn">✕</button></div><div class="modal-body" id="modalBody"></div></div></div>
@@ -249,6 +276,38 @@
   let isLogin = true;
   let userFavorites = new Set();
   let activeUploads = new Map();
+  
+  // ==================== SISTEMA DE ESTRELAS LOCAL ====================
+  function getUserRatingsLocal() {
+    const saved = localStorage.getItem(`yk_ratings_${currentUser?.uid || 'guest'}`);
+    return saved ? JSON.parse(saved) : {};
+  }
+  
+  function saveUserRatingLocal(animeId, nota) {
+    const ratings = getUserRatingsLocal();
+    ratings[animeId] = nota;
+    localStorage.setItem(`yk_ratings_${currentUser?.uid || 'guest'}`, JSON.stringify(ratings));
+    const globalRatings = JSON.parse(localStorage.getItem('yk_global_ratings') || '{}');
+    if (!globalRatings[animeId]) globalRatings[animeId] = { total: 0, count: 0 };
+    globalRatings[animeId].total += nota;
+    globalRatings[animeId].count++;
+    localStorage.setItem('yk_global_ratings', JSON.stringify(globalRatings));
+    showMessage(`⭐ Você avaliou com ${nota} estrela${nota>1?'s':''}!`, false);
+  }
+  
+  function getAverageRatingLocal(animeId) {
+    const globalRatings = JSON.parse(localStorage.getItem('yk_global_ratings') || '{}');
+    const data = globalRatings[animeId];
+    if (data && data.count > 0) {
+      return (data.total / data.count).toFixed(1);
+    }
+    return null;
+  }
+  
+  function getUserRatingLocal(animeId) {
+    const ratings = getUserRatingsLocal();
+    return ratings[animeId] || null;
+  }
 
   // ==================== UTILITÁRIOS ====================
   function showMessage(text, isError = true) {
@@ -342,26 +401,33 @@
     return container;
   }
 
-  // ==================== AVALIAÇÕES ====================
-  async function getAverageRating(animeId) {
-    try { const snap = await db.collection("avaliacoes").where("animeId", "==", animeId).get(); let total=0,count=0; snap.forEach(d=>{total+=d.data().nota; count++;}); return count>0?(total/count).toFixed(1):null; } catch(e){return null;}
-  }
-  async function getUserRating(animeId, userId) { if(!userId) return null; try{ const doc = await db.collection("avaliacoes").doc(`${animeId}_${userId}`).get(); return doc.exists?doc.data().nota:null; }catch(e){return null;} }
-  async function setRating(animeId, nota) { if(!currentUser){ showMessage("Faça login para avaliar!"); return false; } try{ await db.collection("avaliacoes").doc(`${animeId}_${currentUser.uid}`).set({ animeId, userId: currentUser.uid, nota, createdAt: new Date() }); showMessage(`⭐ Avaliação ${nota} estrela${nota>1?'s':''} salva!`, false); return true; }catch(e){ showMessage("Erro: "+e.message); return false; } }
-  function renderStars(rating, interactive=false, onClick=null){
-    const full=Math.floor(rating);
-    let html='';
-    for(let i=1;i<=5;i++){
-      let cls='star-empty';
-      if(i<=full) cls='star-filled';
-      if(interactive) html+=`<span class="star-select" data-value="${i}">★</span>`;
-      else html+=`<span class="${cls}">★</span>`;
+  // ==================== RENDERIZA ESTRELAS ====================
+  function renderStars(rating, interactive = false, onClick = null) {
+    const full = Math.floor(rating);
+    let html = '';
+    for (let i = 1; i <= 5; i++) {
+      let cls = 'star-empty';
+      if (i <= full) cls = 'star-filled';
+      if (interactive) html += `<span class="star-select" data-value="${i}">★</span>`;
+      else html += `<span class="${cls}">★</span>`;
     }
-    if(interactive){
-      const div=document.createElement('div'); div.className='star-rating-select'; div.innerHTML=html;
-      div.querySelectorAll('.star-select').forEach(s=>{ s.addEventListener('click', async e=>{ e.stopPropagation(); const v=parseInt(s.dataset.value); if(onClick) await onClick(v); }); });
+    if (interactive) {
+      const div = document.createElement('div');
+      div.className = 'star-rating-select';
+      div.innerHTML = html;
+      div.querySelectorAll('.star-select').forEach(s => {
+        s.addEventListener('click', async e => {
+          e.stopPropagation();
+          const val = parseInt(s.dataset.value);
+          s.style.animation = 'starBounce 0.3s ease';
+          setTimeout(() => s.style.animation = '', 300);
+          if (onClick) await onClick(val);
+        });
+      });
       return div;
-    } else return `<div class="rating-stars">${html}<span class="rating-value">(${rating})</span></div>`;
+    } else {
+      return `<div class="rating-stars">${html}<span class="rating-value">(${rating})</span></div>`;
+    }
   }
 
   // ==================== FAVORITOS ====================
@@ -400,7 +466,7 @@
     document.getElementById("sugestaoBtn")?.addEventListener("click",()=>window.open("https://discord.com/channels/1486530333502476291/1486596998194008184","_blank")); 
   }
 
-  // ==================== LOAD MEDIA COM FORMULÁRIO DE PUBLICAÇÃO ====================
+  // ==================== LOAD MEDIA COM PUBLICAÇÃO ====================
   async function loadMedia(type){
     const content=document.getElementById("content");
     const snap=await db.collection(type).get();
@@ -409,7 +475,6 @@
     
     let html=`<div class="search-bar"><input type="text" id="searchInput" placeholder="🔎 Pesquisar..."></div><div class="filter-bar"><div class="filter-chip active" data-cat="Todos">Todos</div>${CATEGORIES.map(c=>`<div class="filter-chip" data-cat="${c}">${c}</div>`).join('')}</div>`;
     
-    // FORMULÁRIO DE PUBLICAÇÃO - SÓ PARA ADMIN
     if(userData?.isAdmin){
       html+=`<div class="admin-form"><h3 style="color:#ff9ac2; margin-bottom:15px;">🌸 PUBLICAR NOVO ${type==="animes"?"ANIME":"MANGÁ"} 🌸</h3>
         <input id="newTitle" placeholder="Título *">
@@ -424,7 +489,6 @@
     html+=`<div class="anime-grid" id="mediaGrid"></div>`;
     content.innerHTML=html;
     
-    // LÓGICA DE PUBLICAÇÃO PARA ADMIN
     if(userData?.isAdmin){
       let seasonCounter=1;
       function addSeason(seasonName=null){
@@ -494,12 +558,11 @@
       const grid=document.getElementById("mediaGrid");
       if(!grid) return;
       if(!filtered.length){ grid.innerHTML="<div style='text-align:center;padding:40px;'>Nenhum resultado</div>"; return; }
-      const ratings=new Map();
-      for(let i of filtered){ const avg=await getAverageRating(i.id); if(avg) ratings.set(i.id,avg); }
+      
       grid.innerHTML=filtered.map(item=>{ 
         const isFav=userFavorites.has(item.id); 
-        const avgR=ratings.get(item.id); 
-        const stars=avgR?renderStars(parseFloat(avgR),false):'<div class="rating-stars">☆☆☆☆☆</div>'; 
+        const avgR = getAverageRatingLocal(item.id);
+        const stars = avgR ? renderStars(parseFloat(avgR), false) : '<div class="rating-stars">☆☆☆☆☆</div>';
         return `<div class="anime-card" data-item='${JSON.stringify(item).replace(/'/g,"&#39;")}'>${isNovidade(item.createdAt)?'<div class="novidade-badge">✨ NOVIDADE</div>':''}<button class="favorite-btn-overlay ${isFav?'active':''}" data-id="${item.id}">${isFav?'❤️':'🤍'}</button><div class="anime-image"><img src="${item.imageUrl||'https://placehold.co/600x900?text=YK'}" onerror="this.src='https://placehold.co/600x900?text=Sem+Imagem'"></div><div class="card-content"><h3>${escapeHtml(item.title)}</h3><div class="categories-wrapper">${getItemCategories(item).map(c=>`<span class="category-badge">${escapeHtml(c)}</span>`).join('')}</div>${stars}<div class="watch-btn">🎬 ${item.seasons?Object.keys(item.seasons).length:0} temporada(s)</div></div></div>`; 
       }).join('');
       document.querySelectorAll(".anime-card").forEach(c=>c.addEventListener("click",(e)=>{ if(e.target.classList.contains("favorite-btn-overlay")) return; const raw=c.dataset.item; if(raw) openDetailModal(JSON.parse(raw)); }));
@@ -510,28 +573,26 @@
     await renderGrid(items,"Todos","");
   }
 
-  // ==================== MODAL COM EPISÓDIOS - ABRE O LINK ====================
+  // ==================== MODAL COM EPISÓDIOS ====================
   async function openDetailModal(item, savedProgress = null){
     const modal=document.getElementById("detailModal");
     const modalBody=document.getElementById("modalBody");
     const seasons=item.seasons||{};
     const seasonNames=Object.keys(seasons);
     let currentSeason=seasonNames[0]||"";
-    let currentAudioType="dub";
 
-    // Função para abrir o link do episódio
     function openEpisodeLink(episode, audioType){
       const url = audioType==="dub" ? episode.dubLink : episode.legLink;
       if(url){
         window.open(url, "_blank");
-        // Salvar progresso
         if(currentUser){
           const seasonIndex = seasonNames.indexOf(currentSeason);
           const episodeIndex = (seasons[currentSeason] || []).findIndex(ep => ep.name === episode.name);
           saveProgress(item.id, currentSeason, episodeIndex, audioType);
         }
+        showMessage(`🎬 Abrindo: ${episode.name}`, false);
       } else {
-        showMessage("Link não disponível para esta opção de áudio!");
+        showMessage("🔗 Link não disponível para esta opção de áudio!");
       }
     }
 
@@ -563,17 +624,17 @@
       `;
     }
 
-    const avgRating = await getAverageRating(item.id);
-    const userRating = currentUser ? await getUserRating(item.id, currentUser.uid) : null;
-    let starsSelectHtml='';
-    if(currentUser){
-      const selectContainer = renderStars(userRating||0, true, async (val)=>{ 
-        await setRating(item.id, val); 
-        openDetailModal(item); 
-      });
-      const wrapper=document.createElement('div'); wrapper.className='modal-rating'; wrapper.innerHTML='<strong>Sua nota:</strong>'; wrapper.appendChild(selectContainer);
-      starsSelectHtml=wrapper.outerHTML;
-    }
+    const avgRating = getAverageRatingLocal(item.id);
+    const userRating = getUserRatingLocal(item.id);
+    
+    const selectContainer = renderStars(userRating || 0, true, async (val) => {
+      saveUserRatingLocal(item.id, val);
+      openDetailModal(item);
+    });
+    const starsWrapper = document.createElement('div');
+    starsWrapper.className = 'modal-rating';
+    starsWrapper.innerHTML = '<strong>Sua nota:</strong>';
+    starsWrapper.appendChild(selectContainer);
 
     modalBody.innerHTML = `
       <div class="modal-top">
@@ -582,7 +643,7 @@
           <h3>${escapeHtml(item.title)}</h3>
           <div class="modal-categories">${getItemCategories(item).map(c=>`<span class="modal-cat">🎭 ${escapeHtml(c)}</span>`).join('')}</div>
           <div class="modal-desc">${escapeHtml(item.description||"Sem descrição.").replace(/\n/g,'<br>')}</div>
-          ${starsSelectHtml}
+          ${starsWrapper.outerHTML}
           <div class="modal-rating"><strong>Média geral:</strong> ${avgRating ? renderStars(parseFloat(avgRating), false) : 'Sem avaliações'}</div>
         </div>
       </div>
@@ -591,7 +652,6 @@
       </div>
     `;
 
-    // Eventos das temporadas
     document.querySelectorAll("#seasonTabsModal .season-tab").forEach(tab=>{
       tab.onclick = () => {
         document.querySelectorAll("#seasonTabsModal .season-tab").forEach(t=>t.classList.remove("active"));
@@ -609,7 +669,6 @@
         const legLink = el.dataset.legLink;
         const epName = el.dataset.epName;
         
-        // Se tiver apenas um tipo de áudio, clicar no item inteiro abre com aquele áudio
         if(dubLink && !legLink){
           el.style.cursor = "pointer";
           el.onclick = () => openEpisodeLink({ name: epName, dubLink, legLink: "" }, "dub");
@@ -617,7 +676,6 @@
           el.style.cursor = "pointer";
           el.onclick = () => openEpisodeLink({ name: epName, dubLink: "", legLink }, "leg");
         } else if(dubLink && legLink){
-          // Se tem ambos, os badges são clicáveis separadamente
           el.style.cursor = "default";
           const dubBadge = el.querySelector('.episode-audio-badge[data-audio="dub"]');
           const legBadge = el.querySelector('.episode-audio-badge[data-audio="leg"]');
@@ -631,6 +689,154 @@
     modal.classList.add("active");
     document.getElementById("closeModalBtn").onclick = () => modal.classList.remove("active");
     modal.onclick = (e) => { if(e.target === modal) modal.classList.remove("active"); };
+  }
+
+  // ==================== EDIÇÃO COMPLETA NO SITE ====================
+  async function openFullEditModal(item){
+    const modalDiv = document.createElement('div');
+    modalDiv.className = 'modal-overlay active';
+    modalDiv.style.visibility = 'visible';
+    modalDiv.style.opacity = '1';
+    
+    let seasonsHtml = '';
+    const seasons = item.seasons || {};
+    
+    for(let [seasonName, episodes] of Object.entries(seasons)){
+      let epsHtml = '';
+      episodes.forEach((ep, idx) => {
+        epsHtml += `
+          <div class="episode-edit-item">
+            <input type="text" class="edit-ep-name" value="${escapeHtml(ep.name)}" placeholder="Nome do Episódio" style="width:100%; margin-bottom:5px;">
+            <input type="text" class="edit-ep-dub" value="${escapeHtml(ep.dubLink || '')}" placeholder="Link DUB" style="width:100%; margin-bottom:5px;">
+            <input type="text" class="edit-ep-leg" value="${escapeHtml(ep.legLink || '')}" placeholder="Link LEG" style="width:100%; margin-bottom:5px;">
+            <input type="text" class="edit-ep-img" value="${escapeHtml(ep.imageUrl || '')}" placeholder="URL da Imagem" style="width:100%;">
+            <button class="remove-episode-btn" style="margin-top:5px; background:#a5426a; border:none; border-radius:20px; padding:4px 12px; color:white; cursor:pointer;">🗑 Remover Episódio</button>
+          </div>
+        `;
+      });
+      seasonsHtml += `
+        <div class="season-edit-item" data-season-name="${escapeHtml(seasonName)}">
+          <div class="edit-season-header">
+            <input type="text" class="edit-season-name" value="${escapeHtml(seasonName)}" placeholder="Nome da Temporada" style="flex:1;">
+            <button class="remove-season-btn" style="background:#a5426a; border:none; border-radius:20px; padding:4px 12px; color:white; cursor:pointer; margin-left:10px;">🗑 Remover Temporada</button>
+          </div>
+          <div class="episodes-edit-container">${epsHtml}</div>
+          <button class="add-episode-btn" style="margin-top:10px; background:#6a4c7c; border:none; border-radius:20px; padding:6px 12px; color:white; cursor:pointer;">+ Adicionar Episódio</button>
+        </div>
+      `;
+    }
+    
+    modalDiv.innerHTML = `
+      <div class="edit-form-modal">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+          <h2>✏️ Editando: ${escapeHtml(item.title)}</h2>
+          <button class="close-edit-modal" style="background:none; border:none; font-size:28px; color:#ffb0cc; cursor:pointer;">✕</button>
+        </div>
+        <input id="editTitle" value="${escapeHtml(item.title)}" placeholder="Título">
+        <textarea id="editDesc" rows="3" placeholder="Descrição">${escapeHtml(item.description || '')}</textarea>
+        <div class="categories-checkbox-group" style="max-height:150px; overflow-y:auto;">
+          ${CATEGORIES.map(c => `<label><input type="checkbox" value="${c}" class="edit-cat" ${getItemCategories(item).includes(c) ? 'checked' : ''}> ${c}</label>`).join('')}
+        </div>
+        <input id="editImage" value="${escapeHtml(item.imageUrl || '')}" placeholder="URL da capa">
+        <div id="editSeasonsContainer">${seasonsHtml || '<p>Nenhuma temporada. Clique em "Adicionar Temporada" abaixo.</p>'}</div>
+        <button id="addSeasonEditBtn" style="background:#6a4c7c; border:none; border-radius:40px; padding:10px 20px; color:white; cursor:pointer; margin-top:15px;">+ Nova Temporada</button>
+        <button id="saveEditBtn" style="background:linear-gradient(135deg,#ff5a8a,#ff3366); border:none; border-radius:40px; padding:12px; width:100%; margin-top:20px; color:white; font-weight:bold; cursor:pointer;">💾 SALVAR ALTERAÇÕES</button>
+      </div>
+    `;
+    
+    document.body.appendChild(modalDiv);
+    
+    modalDiv.querySelector('.close-edit-modal').onclick = () => modalDiv.remove();
+    modalDiv.onclick = (e) => { if(e.target === modalDiv) modalDiv.remove(); };
+    
+    // Função para adicionar temporada
+    modalDiv.querySelector('#addSeasonEditBtn').onclick = () => {
+      const newSeasonName = prompt("Nome da nova temporada:");
+      if(!newSeasonName) return;
+      const container = modalDiv.querySelector('#editSeasonsContainer');
+      const seasonDiv = document.createElement('div');
+      seasonDiv.className = 'season-edit-item';
+      seasonDiv.innerHTML = `
+        <div class="edit-season-header">
+          <input type="text" class="edit-season-name" value="${escapeHtml(newSeasonName)}" placeholder="Nome da Temporada" style="flex:1;">
+          <button class="remove-season-btn" style="background:#a5426a; border:none; border-radius:20px; padding:4px 12px; color:white; cursor:pointer; margin-left:10px;">🗑 Remover Temporada</button>
+        </div>
+        <div class="episodes-edit-container"></div>
+        <button class="add-episode-btn" style="margin-top:10px; background:#6a4c7c; border:none; border-radius:20px; padding:6px 12px; color:white; cursor:pointer;">+ Adicionar Episódio</button>
+      `;
+      attachSeasonEvents(seasonDiv);
+      container.appendChild(seasonDiv);
+    };
+    
+    function attachSeasonEvents(seasonDiv){
+      seasonDiv.querySelector('.add-episode-btn').onclick = () => {
+        const epsContainer = seasonDiv.querySelector('.episodes-edit-container');
+        const epDiv = document.createElement('div');
+        epDiv.className = 'episode-edit-item';
+        epDiv.innerHTML = `
+          <input type="text" class="edit-ep-name" placeholder="Nome do Episódio" style="width:100%; margin-bottom:5px;">
+          <input type="text" class="edit-ep-dub" placeholder="Link DUB" style="width:100%; margin-bottom:5px;">
+          <input type="text" class="edit-ep-leg" placeholder="Link LEG" style="width:100%; margin-bottom:5px;">
+          <input type="text" class="edit-ep-img" placeholder="URL da Imagem" style="width:100%;">
+          <button class="remove-episode-btn" style="margin-top:5px; background:#a5426a; border:none; border-radius:20px; padding:4px 12px; color:white; cursor:pointer;">🗑 Remover Episódio</button>
+        `;
+        epDiv.querySelector('.remove-episode-btn').onclick = () => epDiv.remove();
+        epsContainer.appendChild(epDiv);
+      };
+      seasonDiv.querySelector('.remove-season-btn').onclick = () => seasonDiv.remove();
+      
+      // Adicionar eventos para episódios existentes
+      seasonDiv.querySelectorAll('.remove-episode-btn').forEach(btn => {
+        btn.onclick = () => btn.closest('.episode-edit-item').remove();
+      });
+    }
+    
+    // Adicionar eventos para temporadas existentes
+    modalDiv.querySelectorAll('.season-edit-item').forEach(attachSeasonEvents);
+    
+    // Salvar alterações
+    modalDiv.querySelector('#saveEditBtn').onclick = async () => {
+      const newTitle = modalDiv.querySelector('#editTitle').value.trim();
+      const newDesc = modalDiv.querySelector('#editDesc').value;
+      const newCats = Array.from(modalDiv.querySelectorAll('.edit-cat:checked')).map(cb => cb.value);
+      const newImg = modalDiv.querySelector('#editImage').value;
+      
+      if(!newTitle) return showMessage("Título obrigatório!");
+      if(!newCats.length) return showMessage("Selecione pelo menos uma categoria!");
+      
+      const newSeasons = {};
+      const seasonDivs = modalDiv.querySelectorAll('#editSeasonsContainer .season-edit-item');
+      
+      for(let sDiv of seasonDivs){
+        let seasonName = sDiv.querySelector('.edit-season-name')?.value.trim();
+        if(!seasonName) continue;
+        const episodes = [];
+        const epDivs = sDiv.querySelectorAll('.episode-edit-item');
+        for(let epDiv of epDivs){
+          const epName = epDiv.querySelector('.edit-ep-name')?.value.trim();
+          const dubLink = epDiv.querySelector('.edit-ep-dub')?.value.trim();
+          const legLink = epDiv.querySelector('.edit-ep-leg')?.value.trim();
+          const epImg = epDiv.querySelector('.edit-ep-img')?.value.trim();
+          if(epName && (dubLink || legLink)){
+            episodes.push({ name: epName, dubLink: dubLink || "", legLink: legLink || "", imageUrl: epImg || "" });
+          }
+        }
+        if(episodes.length) newSeasons[seasonName] = episodes;
+      }
+      
+      await db.collection(item.type).doc(item.id).update({
+        title: newTitle,
+        description: newDesc,
+        categories: newCats,
+        imageUrl: newImg,
+        seasons: newSeasons,
+        updatedAt: new Date()
+      });
+      
+      showMessage("✅ Obra atualizada com sucesso!", false);
+      modalDiv.remove();
+      loadEditMode();
+    };
   }
 
   // ==================== FUNÇÕES BÁSICAS ====================
@@ -678,10 +884,6 @@
     loadEditGrid();
   }
 
-  function openFullEditModal(item){
-    showMessage("Edição completa em desenvolvimento - Use o Firebase Console para editar", false);
-  }
-
   async function loadAvisos(){ 
     const snap=await db.collection("avisos").orderBy("createdAt","desc").get(); 
     let avisos=[]; snap.forEach(d=>avisos.push({id:d.id,...d.data()})); 
@@ -703,7 +905,7 @@
     const usersSnapshot=await db.collection("users").get(); 
     let html=`<div class="admin-form"><h3>👥 Gerenciar Administradores</h3><p style="margin-bottom:15px; color:#aaa;">Promova usuários para Admin.</p>`; 
     usersSnapshot.forEach(doc=>{ const u=doc.data(); html+=`<div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:#1f1830; margin:8px 0; border-radius:28px; flex-wrap:wrap;"><div><strong>${escapeHtml(u.name)}</strong><br><small>${u.email}</small></div>${!u.isAdmin && u.email!==MASTER_EMAIL?`<button class="promote-btn" data-uid="${doc.id}" style="background:#ff5a8a; border:none; border-radius:40px; padding:6px 16px; cursor:pointer;">🌸 Promover a Admin</button>`:u.isAdmin?"<span style='color:#ff5a8a;'>✅ Administrador</span>":"<span style='color:#888;'>Usuário comum</span>"}</div>`; }); 
-    html+=`<hr style="margin:20px 0;"><h3>✨ Informações do Sistema</h3><p>⭐ Sistema de avaliação por estrelas ativo!</p><p>📺 Clique no episódio para abrir o link</p><p>📢 Canal de avisos funcionando</p></div>`; 
+    html+=`<hr style="margin:20px 0;"><h3>✨ Informações do Sistema</h3><p>⭐ Sistema de avaliação por estrelas funcionando!</p><p>📺 Clique no episódio para abrir o link</p><p>💾 Avaliações salvas no seu navegador</p><p>✏️ Edição completa disponível no modo Editar</p></div>`; 
     document.getElementById("content").innerHTML=html; 
     document.querySelectorAll(".promote-btn").forEach(btn=>{ btn.onclick=async()=>{ await db.collection("users").doc(btn.dataset.uid).update({isAdmin:true}); showMessage("✅ Promovido!",false); loadAdminPanel(); }; }); 
   }
