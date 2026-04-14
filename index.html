@@ -9,7 +9,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <style>
-    /* ========== ESTILOS COMPLETOS (IGUAIS AO ORIGINAL, SEM EMOJIS, COM ANIMAÇÕES) ========== */
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
       font-family: 'Segoe UI', 'Poppins', system-ui, sans-serif;
@@ -287,20 +286,21 @@
       transition:0.3s;
     }
     .announcement-card:hover { transform:translateX(5px); border-left-width:8px; }
-    .edit-btn, .delete-btn {
+    .edit-btn, .delete-btn, .move-btn {
       position:absolute; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px);
       border:none; border-radius:30px; padding:5px 10px; cursor:pointer; font-size:11px; color:white;
       z-index:3; transition:0.3s;
     }
-    .edit-btn { right:55px; top:10px; background:rgba(58,42,85,0.9); }
-    .delete-btn { right:10px; top:10px; background:rgba(165,66,106,0.8); }
-    .edit-btn:hover, .delete-btn:hover { transform:scale(1.1); }
+    .edit-btn { right:100px; top:10px; background:rgba(58,42,85,0.9); }
+    .move-btn { right:55px; top:10px; background:rgba(255,90,138,0.8); }
+    .delete-btn { right:8px; top:10px; background:rgba(165,66,106,0.8); }
+    .edit-btn:hover, .move-btn:hover, .delete-btn:hover { transform:scale(1.1); }
     .promote-btn { background:#ff5a8a; border:none; border-radius:40px; padding:6px 16px; cursor:pointer; color:white; transition:0.3s; }
     .promote-btn:hover { transform:scale(1.05); background:#ff3366; }
   </style>
 </head>
 <body>
-<div class="beta-banner">BETA - Filmes (seus dados antigos estão aqui) | Séries (nova coleção) | Estrelas apenas visual</div>
+<div class="beta-banner">BETA - Filmes (dados antigos) | Séries (nova coleção) | Botão Mover na edição</div>
 <div id="loginScreen" class="login-screen">
   <div class="login-card">
     <h2>YK Server</h2>
@@ -372,7 +372,7 @@
   function getItemCategories(item) { return item.categories && Array.isArray(item.categories) ? item.categories : (item.category ? [item.category] : []); }
   function isNovidade(date) { if (!date) return false; const d = date.toDate ? date.toDate() : new Date(date); return (new Date() - d) / (1000 * 3600 * 24) <= 7; }
 
-  // ==================== ESTRELAS APENAS VISUAL (NÃO SALVA) ====================
+  // ==================== ESTRELAS APENAS VISUAL ====================
   function renderStarsVisual(rating = 0, interactive = true, onRatingChange = null) {
     const full = Math.floor(rating);
     const container = document.createElement('div');
@@ -386,7 +386,6 @@
       star.style.cursor = 'pointer';
       star.addEventListener('click', (e) => {
         e.stopPropagation();
-        // Marca visualmente sem salvar
         for (let j = 1; j <= 5; j++) {
           const s = container.children[j-1];
           s.style.color = j <= i ? '#ffcc00' : '#555';
@@ -415,7 +414,7 @@
   if (mobileOverlay) mobileOverlay.onclick = closeSidebar;
   function attachNavEvents() { document.querySelectorAll(".nav-item").forEach(el => { el.onclick = () => { loadTab(el.dataset.tab); document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active")); el.classList.add("active"); closeSidebar(); }; }); }
 
-  // ==================== MODAL COM PLAYER UNIVERSAL (ESTRELAS VISUAIS) ====================
+  // ==================== MODAL COM PLAYER UNIVERSAL ====================
   async function openDetailModal(item) {
     const modal = document.getElementById("detailModal");
     const modalBody = document.getElementById("modalBody");
@@ -479,7 +478,6 @@
       return `<div class="season-tabs" id="seasonTabsModal">${seasonNames.map(s => `<div class="season-tab" data-season="${s}">${escapeHtml(s)}</div>`).join('')}</div><div id="episodesListModal">${renderSeasonEpisodes(currentSeason)}</div>`;
     }
 
-    // Estrelas visuais (sem persistência)
     const starsDiv = document.createElement('div'); starsDiv.className = 'modal-rating'; starsDiv.innerHTML = '<strong>Sua nota:</strong> ';
     const starsContainer = renderStarsVisual(0, true);
     starsDiv.appendChild(starsContainer);
@@ -531,7 +529,84 @@
     modal.onclick = e => { if (e.target === modal) { closePlayer(); modal.classList.remove("active"); } };
   }
 
-  // ==================== LOAD MEDIA GENÉRICO (FILMES e SÉRIES) ====================
+  // ==================== FUNÇÃO PARA MOVER ITEM ENTRE COLEÇÕES ====================
+  async function moveItemBetweenCollections(item, targetCollection) {
+    if (!confirm(`Mover "${item.title}" para ${targetCollection === 'animes' ? 'FILMES' : 'SÉRIES'}? Os dados serão transferidos.`)) return;
+    try {
+      const sourceCollection = item.type;
+      if (sourceCollection === targetCollection) {
+        showMessage("O item já está nesta categoria!");
+        return;
+      }
+      // Criar novo documento na coleção destino
+      const newDocRef = db.collection(targetCollection).doc(item.id);
+      const newData = { ...item };
+      delete newData.type;
+      await newDocRef.set(newData);
+      // Deletar da coleção origem
+      await db.collection(sourceCollection).doc(item.id).delete();
+      
+      // Atualizar favoritos de todos os usuários que têm este item
+      const favSnapshot = await db.collection("favoritos").get();
+      for (const favDoc of favSnapshot.docs) {
+        const data = favDoc.data();
+        if (data.itens && data.itens.includes(item.id)) {
+          const newItens = data.itens.filter(id => id !== item.id);
+          newItens.push(item.id);
+          await favDoc.ref.update({ itens: newItens, updatedAt: new Date() });
+        }
+      }
+      
+      // Atualizar progresso de todos os usuários que têm este item
+      const progSnapshot = await db.collection("progresso").where("mediaId", "==", item.id).get();
+      for (const progDoc of progSnapshot.docs) {
+        await progDoc.ref.update({ mediaId: item.id });
+      }
+      
+      showMessage(`Item movido para ${targetCollection === 'animes' ? 'FILMES' : 'SÉRIES'}!`, false);
+      loadEditMode(); // recarrega a grade de edição
+    } catch (error) {
+      console.error(error);
+      showMessage("Erro ao mover item.");
+    }
+  }
+
+  // ==================== DIÁLOGO PARA ESCOLHER FILME/SÉRIE ====================
+  function showMoveDialog(item) {
+    const modalDiv = document.createElement('div');
+    modalDiv.style.position = 'fixed';
+    modalDiv.style.top = '0';
+    modalDiv.style.left = '0';
+    modalDiv.style.width = '100%';
+    modalDiv.style.height = '100%';
+    modalDiv.style.backgroundColor = 'rgba(0,0,0,0.8)';
+    modalDiv.style.display = 'flex';
+    modalDiv.style.alignItems = 'center';
+    modalDiv.style.justifyContent = 'center';
+    modalDiv.style.zIndex = '1000';
+    modalDiv.innerHTML = `
+      <div style="background:#1c152e; padding:30px; border-radius:30px; text-align:center; border:1px solid #ff5a8a;">
+        <h3 style="margin-bottom:20px;">Mover: ${escapeHtml(item.title)}</h3>
+        <div style="display:flex; gap:20px; justify-content:center;">
+          <button id="moveToMovies" style="background:#ff5a8a; border:none; padding:10px 25px; border-radius:40px; color:white; cursor:pointer;">🎬 Filmes</button>
+          <button id="moveToSeries" style="background:#6a4c7c; border:none; padding:10px 25px; border-radius:40px; color:white; cursor:pointer;">📺 Séries</button>
+          <button id="cancelMove" style="background:#a5426a; border:none; padding:10px 25px; border-radius:40px; color:white; cursor:pointer;">Cancelar</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modalDiv);
+    document.getElementById('moveToMovies').onclick = () => {
+      modalDiv.remove();
+      moveItemBetweenCollections(item, 'animes');
+    };
+    document.getElementById('moveToSeries').onclick = () => {
+      modalDiv.remove();
+      moveItemBetweenCollections(item, 'series');
+    };
+    document.getElementById('cancelMove').onclick = () => modalDiv.remove();
+  }
+
+  // ==================== LOAD MEDIA (FILMES E SÉRIES) ====================
   async function loadMedia(collectionName, typeLabel) {
     const content = document.getElementById("content");
     const snap = await db.collection(collectionName).get();
@@ -635,7 +710,7 @@
     document.getElementById("sugestaoBtn")?.addEventListener("click", () => window.open("https://discord.com/channels/1486530333502476291/1486596998194008184", "_blank"));
   }
 
-  async function loadDoacao() { /* igual ao anterior */ 
+  async function loadDoacao() {
     document.getElementById("content").innerHTML = `
       <div class="donation-container">
         <div class="donation-card">
@@ -684,25 +759,54 @@
     document.querySelectorAll(".anime-card").forEach(card => { card.addEventListener("click", () => { const raw = card.dataset.item; if (raw) openDetailModal(JSON.parse(raw)); }); });
   }
 
+  // ==================== MODO EDIÇÃO COM BOTÃO MOVER ====================
   async function loadEditMode() {
     const content = document.getElementById("content");
     content.innerHTML = `<div class="admin-form"><h2>MODO EDIÇÃO - GERENCIAR OBRAS</h2><div style="display:flex; gap:15px; margin-bottom:25px;"><button id="editFilmesBtn" class="filter-chip active">Editar Filmes</button><button id="editSeriesBtn" class="filter-chip">Editar Séries</button></div><div id="editGridContainer"></div></div>`;
-    let currentType = "animes"; // filmes estão na coleção "animes"
+    let currentType = "animes";
     async function loadEditGrid() {
       const snap = await db.collection(currentType).get();
       let items = []; snap.forEach(d => items.push({ id: d.id, ...d.data(), type: currentType }));
       const container = document.getElementById("editGridContainer");
       if (!items.length) { container.innerHTML = "<p style='text-align:center;padding:40px;'>Nenhum item encontrado</p>"; return; }
-      container.innerHTML = `<div class="anime-grid">${items.map(item => `<div class="anime-card" style="position:relative;"><button class="edit-btn" data-id="${item.id}" data-type="${currentType}" style="right:55px;">Editar</button><button class="delete-btn" data-id="${item.id}" data-type="${currentType}" style="right:8px;">Excluir</button><div class="anime-image"><img src="${item.imageUrl || 'https://placehold.co/600x900?text=YK'}" onerror="this.src='https://placehold.co/600x900?text=Sem+Imagem'"></div><div class="card-content"><h3>${escapeHtml(item.title)}</h3><div class="categories-wrapper">${getItemCategories(item).map(c => `<span class="category-badge">${escapeHtml(c)}</span>`).join('')}</div><div class="watch-btn">${item.seasons ? Object.keys(item.seasons).length : 0} temporada(s)</div></div></div>`).join('')}</div>`;
-      document.querySelectorAll(".edit-btn").forEach(btn => { btn.onclick = async e => { e.stopPropagation(); const id = btn.dataset.id; const type = btn.dataset.type; const doc = await db.collection(type).doc(id).get(); if (doc.exists) openFullEditModal({ id, ...doc.data(), type }); }; });
-      document.querySelectorAll(".delete-btn").forEach(btn => { btn.onclick = async e => { e.stopPropagation(); if (confirm("Deletar permanentemente?")) { await db.collection(btn.dataset.type).doc(btn.dataset.id).delete(); showMessage("Deletado!", false); loadEditGrid(); } }; });
+      container.innerHTML = `<div class="anime-grid">${items.map(item => `<div class="anime-card" style="position:relative;"><button class="edit-btn" data-id="${item.id}" data-type="${currentType}">Editar</button><button class="move-btn" data-id="${item.id}" data-type="${currentType}">Mover</button><button class="delete-btn" data-id="${item.id}" data-type="${currentType}">Excluir</button><div class="anime-image"><img src="${item.imageUrl || 'https://placehold.co/600x900?text=YK'}" onerror="this.src='https://placehold.co/600x900?text=Sem+Imagem'"></div><div class="card-content"><h3>${escapeHtml(item.title)}</h3><div class="categories-wrapper">${getItemCategories(item).map(c => `<span class="category-badge">${escapeHtml(c)}</span>`).join('')}</div><div class="watch-btn">${item.seasons ? Object.keys(item.seasons).length : 0} temporada(s)</div></div></div>`).join('')}</div>`;
+      
+      document.querySelectorAll(".edit-btn").forEach(btn => { 
+        btn.onclick = async e => { 
+          e.stopPropagation(); 
+          const id = btn.dataset.id; 
+          const type = btn.dataset.type; 
+          const doc = await db.collection(type).doc(id).get(); 
+          if (doc.exists) openFullEditModal({ id, ...doc.data(), type }); 
+        }; 
+      });
+      document.querySelectorAll(".move-btn").forEach(btn => { 
+        btn.onclick = async e => { 
+          e.stopPropagation(); 
+          const id = btn.dataset.id; 
+          const type = btn.dataset.type; 
+          const doc = await db.collection(type).doc(id).get(); 
+          if (doc.exists) showMoveDialog({ id, ...doc.data(), type }); 
+        }; 
+      });
+      document.querySelectorAll(".delete-btn").forEach(btn => { 
+        btn.onclick = async e => { 
+          e.stopPropagation(); 
+          if (confirm("Deletar permanentemente?")) { 
+            await db.collection(btn.dataset.type).doc(btn.dataset.id).delete(); 
+            showMessage("Deletado!", false); 
+            loadEditGrid(); 
+          } 
+        }; 
+      });
     }
     document.getElementById("editFilmesBtn").onclick = () => { currentType = "animes"; document.getElementById("editFilmesBtn").classList.add("active"); document.getElementById("editSeriesBtn").classList.remove("active"); loadEditGrid(); };
     document.getElementById("editSeriesBtn").onclick = () => { currentType = "series"; document.getElementById("editSeriesBtn").classList.add("active"); document.getElementById("editFilmesBtn").classList.remove("active"); loadEditGrid(); };
     loadEditGrid();
   }
 
-  async function openFullEditModal(item) { /* mesmo código do edit modal, sem emojis */ 
+  // ==================== OPEN FULL EDIT MODAL (MESMA FUNÇÃO DO CÓDIGO ANTERIOR) ====================
+  async function openFullEditModal(item) {
     const modalDiv = document.createElement('div');
     modalDiv.className = 'modal-overlay active';
     modalDiv.style.visibility = 'visible'; modalDiv.style.opacity = '1';
@@ -783,6 +887,7 @@
     };
   }
 
+  // ==================== AVISOS E ADMIN ====================
   async function loadAvisos() {
     const snap = await db.collection("avisos").orderBy("createdAt", "desc").get();
     let avisos = []; snap.forEach(d => avisos.push({ id: d.id, ...d.data() }));
@@ -804,7 +909,7 @@
     const usersSnapshot = await db.collection("users").get();
     let html = `<div class="admin-form"><h3>Gerenciar Administradores</h3><p style="margin-bottom:15px;">Promova usuários para Admin.</p>`;
     usersSnapshot.forEach(doc => { const u = doc.data(); html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:#1f1830; margin:8px 0; border-radius:28px; flex-wrap:wrap;"><div><strong>${escapeHtml(u.name)}</strong><br><small>${u.email}</small></div>${!u.isAdmin && u.email !== MASTER_EMAIL ? `<button class="promote-btn" data-uid="${doc.id}">Promover a Admin</button>` : u.isAdmin ? "<span style='color:#ff5a8a;'>Administrador</span>" : "<span style='color:#888;'>Usuário comum</span>"}</div>`; });
-    html += `<hr><h3>Informações do Sistema</h3><p>Duas categorias: Filmes (dados antigos na coleção "animes") e Séries (coleção "series").</p><p>Player universal: aceita qualquer link de vídeo (mp4, uqload, embed).</p><p>Botão "Próximo episódio" incluso.</p><p>Avaliações por estrelas são apenas visuais (não salvam).</p></div>`;
+    html += `<hr><h3>Informações do Sistema</h3><p>Duas categorias: Filmes (coleção "animes") e Séries (coleção "series").</p><p>Na aba Editar, use o botão "Mover" para transferir itens entre Filmes e Séries.</p><p>Player universal: aceita qualquer link de vídeo.</p><p>Botão "Próximo episódio" incluso.</p><p>Avaliações por estrelas são apenas visuais.</p></div>`;
     document.getElementById("content").innerHTML = html;
     document.querySelectorAll(".promote-btn").forEach(btn => { btn.onclick = async () => { await db.collection("users").doc(btn.dataset.uid).update({ isAdmin: true }); showMessage("Promovido!", false); loadAdminPanel(); }; });
   }
