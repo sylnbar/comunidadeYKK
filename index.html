@@ -300,12 +300,19 @@
   </style>
 </head>
 <body>
-<div class="beta-banner">BETA - Filmes (dados antigos) | Séries (nova coleção) | Botão Mover na edição</div>
+<div class="beta-banner">BETA</div>
 <div id="loginScreen" class="login-screen">
   <div class="login-card">
     <h2>YK Server</h2>
-    <input type="email" id="email" placeholder="E-mail">
-    <input type="password" id="password" placeholder="Senha">
+    <div id="loginFields">
+      <input type="email" id="email" placeholder="E-mail">
+      <input type="password" id="password" placeholder="Senha">
+    </div>
+    <div id="signupFields" style="display:none;">
+      <input type="text" id="signupName" placeholder="Nome de usuário">
+      <input type="email" id="signupEmail" placeholder="E-mail">
+      <input type="password" id="signupPassword" placeholder="Senha (mínimo 6 caracteres)">
+    </div>
     <button id="loginBtn">Entrar</button>
     <div id="switchMode" class="switch">Criar nova conta</div>
     <div id="forgotBtn" class="switch">Esqueceu a senha?</div>
@@ -538,15 +545,12 @@
         showMessage("O item já está nesta categoria!");
         return;
       }
-      // Criar novo documento na coleção destino
       const newDocRef = db.collection(targetCollection).doc(item.id);
       const newData = { ...item };
       delete newData.type;
       await newDocRef.set(newData);
-      // Deletar da coleção origem
       await db.collection(sourceCollection).doc(item.id).delete();
       
-      // Atualizar favoritos de todos os usuários que têm este item
       const favSnapshot = await db.collection("favoritos").get();
       for (const favDoc of favSnapshot.docs) {
         const data = favDoc.data();
@@ -557,14 +561,13 @@
         }
       }
       
-      // Atualizar progresso de todos os usuários que têm este item
       const progSnapshot = await db.collection("progresso").where("mediaId", "==", item.id).get();
       for (const progDoc of progSnapshot.docs) {
         await progDoc.ref.update({ mediaId: item.id });
       }
       
       showMessage(`Item movido para ${targetCollection === 'animes' ? 'FILMES' : 'SÉRIES'}!`, false);
-      loadEditMode(); // recarrega a grade de edição
+      loadEditMode();
     } catch (error) {
       console.error(error);
       showMessage("Erro ao mover item.");
@@ -588,8 +591,8 @@
       <div style="background:#1c152e; padding:30px; border-radius:30px; text-align:center; border:1px solid #ff5a8a;">
         <h3 style="margin-bottom:20px;">Mover: ${escapeHtml(item.title)}</h3>
         <div style="display:flex; gap:20px; justify-content:center;">
-          <button id="moveToMovies" style="background:#ff5a8a; border:none; padding:10px 25px; border-radius:40px; color:white; cursor:pointer;">🎬 Filmes</button>
-          <button id="moveToSeries" style="background:#6a4c7c; border:none; padding:10px 25px; border-radius:40px; color:white; cursor:pointer;">📺 Séries</button>
+          <button id="moveToMovies" style="background:#ff5a8a; border:none; padding:10px 25px; border-radius:40px; color:white; cursor:pointer;">Filmes</button>
+          <button id="moveToSeries" style="background:#6a4c7c; border:none; padding:10px 25px; border-radius:40px; color:white; cursor:pointer;">Séries</button>
           <button id="cancelMove" style="background:#a5426a; border:none; padding:10px 25px; border-radius:40px; color:white; cursor:pointer;">Cancelar</button>
         </div>
       </div>
@@ -805,7 +808,7 @@
     loadEditGrid();
   }
 
-  // ==================== OPEN FULL EDIT MODAL (MESMA FUNÇÃO DO CÓDIGO ANTERIOR) ====================
+  // ==================== OPEN FULL EDIT MODAL ====================
   async function openFullEditModal(item) {
     const modalDiv = document.createElement('div');
     modalDiv.className = 'modal-overlay active';
@@ -887,7 +890,7 @@
     };
   }
 
-  // ==================== AVISOS E ADMIN ====================
+  // ==================== AVISOS COM AUTOR "SYLNAR" ====================
   async function loadAvisos() {
     const snap = await db.collection("avisos").orderBy("createdAt", "desc").get();
     let avisos = []; snap.forEach(d => avisos.push({ id: d.id, ...d.data() }));
@@ -899,7 +902,14 @@
     html += `</div></div>`;
     document.getElementById("content").innerHTML = html;
     if (userData?.isAdmin) {
-      document.getElementById("postAvisoBtn")?.addEventListener("click", async () => { const msg = document.getElementById("newAvisoMsg").value.trim(); if (!msg) return; await db.collection("avisos").add({ message: msg, authorName: userData.name, authorId: currentUser.uid, createdAt: new Date() }); showMessage("Aviso publicado!", false); loadAvisos(); });
+      document.getElementById("postAvisoBtn")?.addEventListener("click", async () => { 
+        const msg = document.getElementById("newAvisoMsg").value.trim(); 
+        if (!msg) return; 
+        // Autor sempre "Sylnar"
+        await db.collection("avisos").add({ message: msg, authorName: "Sylnar", authorId: currentUser.uid, createdAt: new Date() }); 
+        showMessage("Aviso publicado!", false); 
+        loadAvisos(); 
+      });
       document.querySelectorAll(".deleteAvisoBtn").forEach(btn => { btn.onclick = async () => { if (confirm("Remover?")) { await db.collection("avisos").doc(btn.dataset.id).delete(); loadAvisos(); } }; });
     }
   }
@@ -930,27 +940,45 @@
   function updateUI() {
     const btn = document.getElementById("loginBtn");
     const sw = document.getElementById("switchMode");
-    if (isLogin) { btn.innerText = "Entrar"; sw.innerText = "Criar nova conta"; }
-    else { btn.innerText = "Cadastrar"; sw.innerText = "Já tenho conta"; }
+    const loginFields = document.getElementById("loginFields");
+    const signupFields = document.getElementById("signupFields");
+    if (isLogin) {
+      btn.innerText = "Entrar";
+      sw.innerText = "Criar nova conta";
+      loginFields.style.display = "block";
+      signupFields.style.display = "none";
+    } else {
+      btn.innerText = "Cadastrar";
+      sw.innerText = "Já tenho conta";
+      loginFields.style.display = "none";
+      signupFields.style.display = "block";
+    }
   }
   document.getElementById("switchMode").onclick = () => { isLogin = !isLogin; updateUI(); };
   document.getElementById("forgotBtn").onclick = async () => { const email = prompt("Digite seu e-mail:"); if (email) try { await auth.sendPasswordResetEmail(email); showMessage("Email de recuperação enviado!", false); } catch (e) { showMessage("Erro ao enviar email"); } };
   document.getElementById("loginBtn").onclick = async () => {
-    const email = document.getElementById("email").value;
-    const pwd = document.getElementById("password").value;
-    if (!email || !pwd) { showMessage("Preencha email e senha!"); return; }
     const loading = document.getElementById("loadingScreen");
     loading.style.display = "flex";
     try {
-      if (isLogin) { await auth.signInWithEmailAndPassword(email, pwd); showMessage("Login realizado!", false); }
-      else {
+      if (isLogin) {
+        const email = document.getElementById("email").value;
+        const pwd = document.getElementById("password").value;
+        if (!email || !pwd) { showMessage("Preencha email e senha!"); loading.style.display = "none"; return; }
+        await auth.signInWithEmailAndPassword(email, pwd);
+        showMessage("Login realizado!", false);
+      } else {
+        const name = document.getElementById("signupName").value.trim();
+        const email = document.getElementById("signupEmail").value;
+        const pwd = document.getElementById("signupPassword").value;
+        if (!name || !email || !pwd) { showMessage("Preencha todos os campos!"); loading.style.display = "none"; return; }
         if (pwd.length < 6) { showMessage("Senha precisa ter 6+ caracteres"); loading.style.display = "none"; return; }
         const cred = await auth.createUserWithEmailAndPassword(email, pwd);
         await cred.user.sendEmailVerification();
-        await db.collection("users").doc(cred.user.uid).set({ name: email.split("@")[0], email: email, isAdmin: email === MASTER_EMAIL, createdAt: new Date() });
+        await db.collection("users").doc(cred.user.uid).set({ name: name, email: email, isAdmin: email === MASTER_EMAIL, createdAt: new Date() });
         showMessage("Conta criada! Verifique seu e-mail.", false);
         await auth.signOut();
-        isLogin = true; updateUI();
+        isLogin = true;
+        updateUI();
       }
     } catch (e) { showMessage("Erro: " + e.message); }
     finally { loading.style.display = "none"; }
@@ -982,7 +1010,8 @@
       document.getElementById("loginScreen").style.display = "flex";
       document.getElementById("app").style.display = "none";
       loading.style.display = "none";
-      isLogin = true; updateUI();
+      isLogin = true;
+      updateUI();
     }
   });
 </script>
