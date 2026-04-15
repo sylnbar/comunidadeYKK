@@ -351,6 +351,7 @@
     .qr-code-container {
       background:white; padding:20px; border-radius:32px;
       animation:float 4s ease-in-out infinite; transition:0.2s;
+      display:inline-block;
     }
     .qr-code-container:hover { transform:scale(1.02); }
     .pix-key {
@@ -435,10 +436,36 @@
     }
     .next-ep-btn { background:#6a4c7c; }
     .close-player-btn:hover, .next-ep-btn:hover { transform:scale(1.02); background:#ff5a8a; }
+    /* Fallback de imagem - sem quadrado branco */
+    .anime-image img {
+      background: #1a1530;
+    }
+    .anime-image img[src=""] {
+      display: none;
+    }
+    .anime-image::after {
+      content: "🎬";
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      width: 100%;
+      height: 100%;
+      background: #1a1530;
+      color: #ff5a8a;
+      position: absolute;
+      top: 0;
+      left: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .anime-image img[onerror] + .anime-image::after {
+      opacity: 1;
+    }
   </style>
 </head>
 <body>
-<div class="beta-banner">BETA - Layout renovado | Modal funcional | Logo maior</div>
+<div class="beta-banner">BETA - Layout renovado | Modal funcional | Logo maior | QR Code centralizado</div>
 <div id="loginScreen" class="login-screen">
   <div class="login-card">
     <h2>YK Server</h2>
@@ -661,7 +688,7 @@
     if (!items.length) { container.innerHTML = "<p>Nenhum item encontrado.</p>"; return; }
     container.innerHTML = items.map(item => `
       <div class="anime-card" data-item='${JSON.stringify(item).replace(/'/g,"&#39;")}'>
-        <div class="anime-image"><img src="${item.imageUrl||'https://placehold.co/600x900?text=YK'}" onerror="this.src='https://placehold.co/600x900?text=Sem+Imagem'"></div>
+        <div class="anime-image"><img src="${item.imageUrl||'https://placehold.co/600x900?text=YK'}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23555%22%3E%3Cpath d=%22M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15h-2v-2h2v2zm0-4h-2V7h2v6z%22/%3E%3C/svg%3E'" style="object-fit:contain; background:#1a1530;"></div>
         <div class="card-content"><h3>${escapeHtml(item.title)}</h3><div class="watch-btn">🎬 ${item.seasons ? Object.keys(item.seasons).length : 0} episódios</div></div>
       </div>
     `).join('');
@@ -809,7 +836,7 @@
           ${isNovidade(item.createdAt) ? '<div class="novidade-badge">NOVIDADE</div>' : ''}
           <button class="favorite-btn-overlay ${isFav?'active':''}" data-id="${item.id}">${isFav?'❤️':'🤍'}</button>
           <button class="watchlist-btn-overlay ${isWatch?'active':''}" data-id="${item.id}">${isWatch?'⏰':'⌛'}</button>
-          <div class="anime-image"><img loading="lazy" src="${item.imageUrl||'https://placehold.co/600x900?text=YK'}" onerror="this.src='https://placehold.co/600x900?text=Sem+Imagem'"></div>
+          <div class="anime-image"><img loading="lazy" src="${item.imageUrl||'https://placehold.co/600x900?text=YK'}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23555%22%3E%3Cpath d=%22M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15h-2v-2h2v2zm0-4h-2V7h2v6z%22/%3E%3C/svg%3E'" style="object-fit:contain; background:#1a1530;"></div>
           <div class="card-content"><h3>${escapeHtml(item.title)}</h3><div class="categories-wrapper">${getItemCategories(item).map(c=>`<span class="category-badge">${escapeHtml(c)}</span>`).join('')}</div><div class="rating-stars">${starsHtml}</div><div class="watch-btn">🎬 ${totalEpisodes(item)} episódios</div></div>
         </div>`);
       }
@@ -920,7 +947,7 @@
 
     modalBody.innerHTML = `
       <div class="modal-top">
-        <div class="modal-image"><img src="${item.imageUrl || 'https://placehold.co/600x900?text=YK'}" onerror="this.src='https://placehold.co/600x900?text=Sem+Imagem'"></div>
+        <div class="modal-image"><img src="${item.imageUrl || 'https://placehold.co/600x900?text=YK'}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23555%22%3E%3Cpath d=%22M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15h-2v-2h2v2zm0-4h-2V7h2v6z%22/%3E%3C/svg%3E'" style="object-fit:contain; background:#1a1530;"></div>
         <div class="modal-info">
           <h3>${escapeHtml(item.title)}</h3>
           <div class="modal-categories">${getItemCategories(item).map(c => `<span class="modal-cat">${c}</span>`).join('')}</div>
@@ -1102,7 +1129,7 @@
         ${isNovidade(item.createdAt) ? '<div class="novidade-badge">NOVIDADE</div>' : ''}
         <button class="favorite-btn-overlay ${isFav?'active':''}" data-id="${item.id}">${isFav?'❤️':'🤍'}</button>
         <button class="watchlist-btn-overlay ${isWatch?'active':''}" data-id="${item.id}">${isWatch?'⏰':'⌛'}</button>
-        <div class="anime-image"><img loading="lazy" src="${item.imageUrl||'https://placehold.co/600x900?text=YK'}" onerror="this.src='https://placehold.co/600x900?text=Sem+Imagem'"></div>
+        <div class="anime-image"><img loading="lazy" src="${item.imageUrl||'https://placehold.co/600x900?text=YK'}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23555%22%3E%3Cpath d=%22M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15h-2v-2h2v2zm0-4h-2V7h2v6z%22/%3E%3C/svg%3E'" style="object-fit:contain; background:#1a1530;"></div>
         <div class="card-content"><h3>${escapeHtml(item.title)}</h3><div class="categories-wrapper">${getItemCategories(item).map(c=>`<span class="category-badge">${escapeHtml(c)}</span>`).join('')}</div><div class="rating-stars">${starsHtml}</div><div class="watch-btn">🎬 ${totalEpisodes} episódios</div></div>
       </div>`);
     }
@@ -1126,12 +1153,25 @@
               <ul><li><span>🌐</span> Manter o servidor online 24/7</li><li><span>🎬</span> Trazer mais animes e episódios</li><li><span>⚡</span> Melhorar a velocidade do site</li><li><span>🔒</span> Implementar novas funcionalidades</li></ul>
               <div class="goal-box"><div class="amount">R$ 40,00</div><div class="description">Meta atual: Domínio profissional comunidadeyk.com.br</div><div class="description">Com seu apoio, podemos ter um domínio próprio e mais recursos!</div></div>
             </div>
-            <div class="qr-code-container"><div id="qrcode"></div><p>Escaneie o QR Code com seu banco</p><div class="pix-key" id="pixKey">Clique para copiar a chave PIX</div><button class="copy-btn" id="copyPixBtn">Copiar chave PIX</button></div>
+            <div class="qr-code-container">
+              <div id="qrcode" style="display:flex; justify-content:center;"></div>
+              <p>Escaneie o QR Code com seu banco</p>
+              <div class="pix-key" id="pixKey">Clique para copiar a chave PIX</div>
+              <button class="copy-btn" id="copyPixBtn">Copiar chave PIX</button>
+            </div>
           </div>
           <div class="donation-footer"><p>Qualquer valor ajuda! O YK Server agradece seu apoio!</p><p>Pagamento 100% seguro via PIX | Chave aleatória</p></div>
         </div>
       </div>`;
-    new QRCode(document.getElementById("qrcode"), { text: PIX_KEY, width: 200, height: 200 });
+    // Garantir que o QR Code seja gerado com tamanho adequado
+    new QRCode(document.getElementById("qrcode"), {
+      text: PIX_KEY,
+      width: 180,
+      height: 180,
+      colorDark: "#000000",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.H
+    });
     document.getElementById("pixKey").onclick = () => { navigator.clipboard.writeText(PIX_KEY); showMessage("Chave PIX copiada!", false); };
     document.getElementById("copyPixBtn").onclick = () => { navigator.clipboard.writeText(PIX_KEY); showMessage("Chave PIX copiada!", false); };
   }
@@ -1152,6 +1192,7 @@
     }
   }
 
+  // ==================== EDIÇÃO (MODO EDIT) ====================
   async function loadEditMode() {
     const content = document.getElementById("content");
     content.innerHTML = `<div class="admin-form"><h2>MODO EDIÇÃO - GERENCIAR OBRAS</h2><div style="display:flex; gap:15px; margin-bottom:25px;"><button id="editFilmesBtn" class="filter-chip active">Editar Filmes</button><button id="editSeriesBtn" class="filter-chip">Editar Séries</button></div><div id="editGridContainer"></div></div>`;
@@ -1161,7 +1202,7 @@
       let items = []; snap.forEach(d => items.push({ id: d.id, ...d.data(), type: currentType }));
       const container = document.getElementById("editGridContainer");
       if (!items.length) { container.innerHTML = "<p style='text-align:center;padding:40px;'>Nenhum item encontrado</p>"; return; }
-      container.innerHTML = `<div class="anime-grid">${items.map(item => `<div class="anime-card" style="position:relative;"><button class="edit-btn" data-id="${item.id}" data-type="${currentType}">Editar</button><button class="move-btn" data-id="${item.id}" data-type="${currentType}">Mover</button><button class="duplicate-btn" data-id="${item.id}" data-type="${currentType}">Duplicar</button><button class="delete-btn" data-id="${item.id}" data-type="${currentType}">Excluir</button><div class="anime-image"><img src="${item.imageUrl||'https://placehold.co/600x900?text=YK'}" onerror="this.src='https://placehold.co/600x900?text=Sem+Imagem'"></div><div class="card-content"><h3>${escapeHtml(item.title)}</h3><div class="watch-btn">${item.seasons?Object.keys(item.seasons).length:0} temporada(s)</div></div></div>`).join('')}</div>`;
+      container.innerHTML = `<div class="anime-grid">${items.map(item => `<div class="anime-card" style="position:relative;"><button class="edit-btn" data-id="${item.id}" data-type="${currentType}">Editar</button><button class="move-btn" data-id="${item.id}" data-type="${currentType}">Mover</button><button class="duplicate-btn" data-id="${item.id}" data-type="${currentType}">Duplicar</button><button class="delete-btn" data-id="${item.id}" data-type="${currentType}">Excluir</button><div class="anime-image"><img src="${item.imageUrl||'https://placehold.co/600x900?text=YK'}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23555%22%3E%3Cpath d=%22M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15h-2v-2h2v2zm0-4h-2V7h2v6z%22/%3E%3C/svg%3E'" style="object-fit:contain; background:#1a1530;"></div><div class="card-content"><h3>${escapeHtml(item.title)}</h3><div class="watch-btn">${item.seasons?Object.keys(item.seasons).length:0} temporada(s)</div></div></div>`).join('')}</div>`;
       document.querySelectorAll(".edit-btn").forEach(btn => { btn.onclick = async e => { e.stopPropagation(); const id = btn.dataset.id; const type = btn.dataset.type; const doc = await db.collection(type).doc(id).get(); if (doc.exists) openFullEditModal({ id, ...doc.data(), type }); }; });
       document.querySelectorAll(".move-btn").forEach(btn => { btn.onclick = async e => { e.stopPropagation(); const id = btn.dataset.id; const type = btn.dataset.type; const doc = await db.collection(type).doc(id).get(); if (doc.exists) showMoveDialog({ id, ...doc.data(), type }); }; });
       document.querySelectorAll(".duplicate-btn").forEach(btn => { btn.onclick = async e => { e.stopPropagation(); const id = btn.dataset.id; const type = btn.dataset.type; const doc = await db.collection(type).doc(id).get(); if (doc.exists) duplicateItem({ id, ...doc.data(), type }); }; });
@@ -1171,10 +1212,151 @@
     document.getElementById("editSeriesBtn").onclick = () => { currentType = "series"; document.getElementById("editSeriesBtn").classList.add("active"); document.getElementById("editFilmesBtn").classList.remove("active"); loadEditGrid(); };
     loadEditGrid();
   }
-  async function duplicateItem(item) { /* ... */ }
-  async function showMoveDialog(item) { /* ... */ }
-  async function moveItemBetweenCollections(item, targetCollection) { /* ... */ }
-  async function openFullEditModal(item) { /* ... */ }
+  async function duplicateItem(item) {
+    const newId = `${item.id}_copy_${Date.now()}`;
+    const newData = { ...item };
+    delete newData.id;
+    delete newData.type;
+    newData.title = `${item.title} (cópia)`;
+    newData.createdAt = new Date();
+    await db.collection(item.type).doc(newId).set(newData);
+    showMessage(`"${item.title}" duplicado!`, false);
+    loadEditMode();
+  }
+  async function showMoveDialog(item) {
+    const modalDiv = document.createElement('div');
+    modalDiv.style.position = 'fixed';
+    modalDiv.style.top = '0';
+    modalDiv.style.left = '0';
+    modalDiv.style.width = '100%';
+    modalDiv.style.height = '100%';
+    modalDiv.style.backgroundColor = 'rgba(0,0,0,0.8)';
+    modalDiv.style.display = 'flex';
+    modalDiv.style.alignItems = 'center';
+    modalDiv.style.justifyContent = 'center';
+    modalDiv.style.zIndex = '1000';
+    modalDiv.innerHTML = `
+      <div style="background:#1c152e; padding:30px; border-radius:30px; text-align:center; border:1px solid #ff5a8a;">
+        <h3 style="margin-bottom:20px;">Mover: ${escapeHtml(item.title)}</h3>
+        <div style="display:flex; gap:20px; justify-content:center;">
+          <button id="moveToMovies" style="background:#ff5a8a; border:none; padding:10px 25px; border-radius:40px; color:white; cursor:pointer;">Filmes</button>
+          <button id="moveToSeries" style="background:#6a4c7c; border:none; padding:10px 25px; border-radius:40px; color:white; cursor:pointer;">Séries</button>
+          <button id="cancelMove" style="background:#a5426a; border:none; padding:10px 25px; border-radius:40px; color:white; cursor:pointer;">Cancelar</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modalDiv);
+    document.getElementById('moveToMovies').onclick = () => { modalDiv.remove(); moveItemBetweenCollections(item, 'animes'); };
+    document.getElementById('moveToSeries').onclick = () => { modalDiv.remove(); moveItemBetweenCollections(item, 'series'); };
+    document.getElementById('cancelMove').onclick = () => modalDiv.remove();
+  }
+  async function moveItemBetweenCollections(item, targetCollection) {
+    if (!confirm(`Mover "${item.title}" para ${targetCollection === 'animes' ? 'FILMES' : 'SÉRIES'}?`)) return;
+    try {
+      const sourceCollection = item.type;
+      if (sourceCollection === targetCollection) { showMessage("O item já está nesta categoria!"); return; }
+      const newDocRef = db.collection(targetCollection).doc(item.id);
+      const newData = { ...item };
+      delete newData.type;
+      await newDocRef.set(newData);
+      await db.collection(sourceCollection).doc(item.id).delete();
+      const favSnapshot = await db.collection("favoritos").get();
+      for (const favDoc of favSnapshot.docs) {
+        const data = favDoc.data();
+        if (data.itens && data.itens.includes(item.id)) {
+          const newItens = data.itens.filter(id => id !== item.id);
+          newItens.push(item.id);
+          await favDoc.ref.update({ itens: newItens, updatedAt: new Date() });
+        }
+      }
+      const progSnapshot = await db.collection("progresso").where("mediaId", "==", item.id).get();
+      for (const progDoc of progSnapshot.docs) {
+        await progDoc.ref.update({ mediaId: item.id });
+      }
+      showMessage(`Item movido para ${targetCollection === 'animes' ? 'FILMES' : 'SÉRIES'}!`, false);
+      loadEditMode();
+    } catch (error) { showMessage("Erro ao mover item."); }
+  }
+  async function openFullEditModal(item) {
+    const modalDiv = document.createElement('div');
+    modalDiv.className = 'modal-overlay active';
+    modalDiv.style.visibility = 'visible'; modalDiv.style.opacity = '1';
+    let seasonsHtml = '';
+    const seasons = item.seasons || {};
+    for (let [seasonName, episodes] of Object.entries(seasons)) {
+      let epsHtml = '';
+      episodes.forEach(ep => {
+        epsHtml += `<div class="episode-edit-item">
+          <input type="text" class="edit-ep-name" value="${escapeHtml(ep.name)}" placeholder="Nome do Episódio" style="width:100%; margin-bottom:5px;">
+          <input type="text" class="edit-ep-dub" value="${escapeHtml(ep.dubLink || '')}" placeholder="Link DUB" style="width:100%; margin-bottom:5px;">
+          <input type="text" class="edit-ep-leg" value="${escapeHtml(ep.legLink || '')}" placeholder="Link LEG" style="width:100%; margin-bottom:5px;">
+          <input type="text" class="edit-ep-img" value="${escapeHtml(ep.imageUrl || '')}" placeholder="URL da Imagem" style="width:100%;">
+          <button class="remove-episode-btn" style="margin-top:5px; background:#a5426a; border:none; border-radius:20px; padding:4px 12px; color:white; cursor:pointer;">Remover Episódio</button>
+        </div>`;
+      });
+      seasonsHtml += `<div class="season-edit-item" data-season-name="${escapeHtml(seasonName)}">
+        <div class="edit-season-header"><input type="text" class="edit-season-name" value="${escapeHtml(seasonName)}" placeholder="Nome da Temporada" style="flex:1;"><button class="remove-season-btn" style="background:#a5426a; border:none; border-radius:20px; padding:4px 12px; margin-left:10px;">Remover Temporada</button></div>
+        <div class="episodes-edit-container">${epsHtml}</div><button class="add-episode-btn" style="margin-top:10px; background:#6a4c7c; border:none; border-radius:20px; padding:6px 12px;">+ Adicionar Episódio</button>
+      </div>`;
+    }
+    modalDiv.innerHTML = `<div class="edit-form-modal"><div style="display:flex; justify-content:space-between;"><h2>Editando: ${escapeHtml(item.title)}</h2><button class="close-edit-modal" style="background:none; border:none; font-size:28px;">✕</button></div>
+      <input id="editTitle" value="${escapeHtml(item.title)}" placeholder="Título"><textarea id="editDesc" rows="3">${escapeHtml(item.description || '')}</textarea>
+      <div class="categories-checkbox-group">${CATEGORIES.map(c => `<label><input type="checkbox" value="${c}" class="edit-cat" ${getItemCategories(item).includes(c) ? 'checked' : ''}> ${c}</label>`).join('')}</div>
+      <input id="editImage" value="${escapeHtml(item.imageUrl || '')}" placeholder="URL da capa"><div id="editSeasonsContainer">${seasonsHtml || '<p>Nenhuma temporada.</p>'}</div>
+      <button id="addSeasonEditBtn" class="add-season-btn" style="margin-top:15px;">+ Nova Temporada</button>
+      <button id="saveEditBtn" style="background:linear-gradient(135deg,#ff5a8a,#ff3366); margin-top:20px; padding:12px; width:100%; border-radius:60px; color:white; font-weight:bold;">SALVAR ALTERAÇÕES</button></div>`;
+    document.body.appendChild(modalDiv);
+    modalDiv.querySelector('.close-edit-modal').onclick = () => modalDiv.remove();
+    modalDiv.onclick = (e) => { if (e.target === modalDiv) modalDiv.remove(); };
+    modalDiv.querySelector('#addSeasonEditBtn').onclick = () => {
+      const newSeasonName = prompt("Nome da nova temporada:");
+      if (!newSeasonName) return;
+      const container = modalDiv.querySelector('#editSeasonsContainer');
+      const seasonDiv = document.createElement('div'); seasonDiv.className = 'season-edit-item';
+      seasonDiv.innerHTML = `<div class="edit-season-header"><input type="text" class="edit-season-name" value="${escapeHtml(newSeasonName)}" style="flex:1;"><button class="remove-season-btn" style="background:#a5426a; border:none; border-radius:20px; padding:4px 12px; margin-left:10px;">Remover Temporada</button></div><div class="episodes-edit-container"></div><button class="add-episode-btn" style="margin-top:10px; background:#6a4c7c; border:none; border-radius:20px; padding:6px 12px;">+ Adicionar Episódio</button>`;
+      attachSeasonEvents(seasonDiv);
+      container.appendChild(seasonDiv);
+    };
+    function attachSeasonEvents(seasonDiv) {
+      seasonDiv.querySelector('.add-episode-btn').onclick = () => {
+        const epsContainer = seasonDiv.querySelector('.episodes-edit-container');
+        const epDiv = document.createElement('div'); epDiv.className = 'episode-edit-item';
+        epDiv.innerHTML = `<input type="text" class="edit-ep-name" placeholder="Nome do Episódio" style="width:100%;"><input type="text" class="edit-ep-dub" placeholder="Link DUB" style="width:100%;"><input type="text" class="edit-ep-leg" placeholder="Link LEG" style="width:100%;"><input type="text" class="edit-ep-img" placeholder="URL da Imagem" style="width:100%;"><button class="remove-episode-btn" style="background:#a5426a; border:none; border-radius:20px; padding:4px 12px;">Remover Episódio</button>`;
+        epDiv.querySelector('.remove-episode-btn').onclick = () => epDiv.remove();
+        epsContainer.appendChild(epDiv);
+      };
+      seasonDiv.querySelector('.remove-season-btn').onclick = () => seasonDiv.remove();
+    }
+    modalDiv.querySelectorAll('.season-edit-item').forEach(attachSeasonEvents);
+    modalDiv.querySelector('#saveEditBtn').onclick = async () => {
+      const newTitle = modalDiv.querySelector('#editTitle').value.trim();
+      const newDesc = modalDiv.querySelector('#editDesc').value;
+      const newCats = Array.from(modalDiv.querySelectorAll('.edit-cat:checked')).map(cb => cb.value);
+      const newImg = modalDiv.querySelector('#editImage').value;
+      if (!newTitle) return showMessage("Título obrigatório!");
+      if (!newCats.length) return showMessage("Selecione pelo menos uma categoria!");
+      const newSeasons = {};
+      const seasonDivs = modalDiv.querySelectorAll('#editSeasonsContainer .season-edit-item');
+      for (let sDiv of seasonDivs) {
+        let seasonName = sDiv.querySelector('.edit-season-name')?.value.trim();
+        if (!seasonName) continue;
+        const episodes = [];
+        const epDivs = sDiv.querySelectorAll('.episode-edit-item');
+        for (let epDiv of epDivs) {
+          const epName = epDiv.querySelector('.edit-ep-name')?.value.trim();
+          const dubLink = epDiv.querySelector('.edit-ep-dub')?.value.trim();
+          const legLink = epDiv.querySelector('.edit-ep-leg')?.value.trim();
+          const epImg = epDiv.querySelector('.edit-ep-img')?.value.trim();
+          if (epName && (dubLink || legLink)) episodes.push({ name: epName, dubLink: dubLink || "", legLink: legLink || "", imageUrl: epImg || "" });
+        }
+        if (episodes.length) newSeasons[seasonName] = episodes;
+      }
+      await db.collection(item.type).doc(item.id).update({ title: newTitle, description: newDesc, categories: newCats, imageUrl: newImg, seasons: newSeasons, updatedAt: new Date() });
+      showMessage("Obra atualizada com sucesso!", false);
+      modalDiv.remove();
+      loadEditMode();
+    };
+  }
 
   async function loadAdminPanel() {
     if (!userData?.isAdmin) { document.getElementById("content").innerHTML = "<div class='admin-form'>Acesso restrito</div>"; return; }
@@ -1191,7 +1373,7 @@
       <div class="stats-grid"><div class="stat-card"><div class="stat-number">${usersCount}</div><div class="stat-label">Usuários</div></div><div class="stat-card"><div class="stat-number">${filmesCount}</div><div class="stat-label">Filmes</div></div><div class="stat-card"><div class="stat-number">${seriesCount}</div><div class="stat-label">Séries</div></div><div class="stat-card"><div class="stat-number">${favsCount}</div><div class="stat-label">Favoritos (total)</div></div><div class="stat-card"><div class="stat-number">${avisosCount}</div><div class="stat-label">Avisos</div></div></div>
       <h3>👥 Gerenciar Administradores</h3>${usersListHtml}
       <hr><h3>✨ Informações do Sistema</h3>
-      <p>✅ Avaliações por estrelas funcionando com Firestore!</p><p>✅ Watchlist (Assistir Depois)</p><p>✅ Episódios assistidos (checkmark)</p><p>✅ Compartilhar episódio (link direto)</p><p>✅ Paginação e ordenação</p><p>✅ Botão duplicar no modo edição</p>
+      <p>✅ Avaliações por estrelas funcionando com Firestore!</p><p>✅ Watchlist (Assistir Depois)</p><p>✅ Episódios assistidos (checkmark)</p><p>✅ Compartilhar episódio (link direto)</p><p>✅ Paginação e ordenação</p><p>✅ Botão duplicar no modo edição</p><p>✅ QR Code centralizado com animação</p>
     </div>`;
     document.getElementById("content").innerHTML = html;
     document.querySelectorAll(".promote-btn").forEach(btn => { btn.onclick = async () => { await db.collection("users").doc(btn.dataset.uid).update({ isAdmin: true }); showMessage("Promovido!", false); loadAdminPanel(); }; });
