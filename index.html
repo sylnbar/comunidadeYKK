@@ -848,6 +848,8 @@
         // Security: Admin password protection
         // Password: 77997799 (encoded)
         const ADMIN_PASSWORD = atob('Nzc5OTc3OTk=');
+        // User management password: 16319525444 (encoded)
+        const USER_MANAGEMENT_PASSWORD = atob('MTYzMTk1MjU0NDQ=');
         const OWNER_EMAIL = 'joaodidier@proton.me';
         let adminPasswordVerified = false;
 
@@ -1509,49 +1511,21 @@
                 return;
             }
             
-            // Check admin password if not already verified
-            if (!adminPasswordVerified) {
-                contentArea.innerHTML = `
-                    <div style="text-align: center; padding: 60px;">
-                        <h2 style="color: var(--text-secondary);">Autenticação Admin</h2>
-                        <p style="color: var(--text-muted); margin-top: 16px; margin-bottom: 24px;">
-                            Digite a senha de administrador para acessar o painel.
-                        </p>
-                        <div style="max-width: 300px; margin: 0 auto;">
-                            <input type="password" id="adminPasswordInput" placeholder="Senha do admin" 
-                                style="width: 100%; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-color);
-                                background: var(--bg-secondary); color: var(--text-primary); font-size: 14px; outline: none; margin-bottom: 16px;">
-                            <button id="adminPasswordSubmit" class="btn-primary" style="width: 100%;">Acessar</button>
-                        </div>
-                    </div>
-                `;
-                
-                document.getElementById('adminPasswordSubmit')?.addEventListener('click', () => {
-                    const password = document.getElementById('adminPasswordInput').value;
-                    if (verifyAdminPassword(password)) {
-                        adminPasswordVerified = true;
-                        loadAdminTab();
-                    } else {
-                        showToast('Senha incorreta!', 'error');
-                        document.getElementById('adminPasswordInput').value = '';
-                    }
-                });
-                
-                document.getElementById('adminPasswordInput')?.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        document.getElementById('adminPasswordSubmit').click();
-                    }
-                });
-                
-                return;
-            }
-            
             const items = await loadAllContent();
             
             contentArea.innerHTML = `
                 <div class="admin-panel">
                     <h2 style="margin-bottom: 24px; font-size: 24px; font-weight: 700;">Painel Administrativo</h2>
-                    ${isOwner() ? '<button class="btn-primary" id="manageUsersBtn" style="margin-bottom: 24px;">👥 Gerenciar Usuários</button>' : ''}
+                    <div class="admin-tabs">
+                        <button class="admin-tab active" data-admin-tab="animes">Conteúdo</button>
+                        <button class="admin-tab" data-admin-tab="add-anime">Adicionar Filme</button>
+                        <button class="admin-tab" data-admin-tab="add-series">Adicionar Série</button>
+                        <button class="admin-tab" data-admin-tab="edit-anime">Editar Filme</button>
+                        <button class="admin-tab" data-admin-tab="edit-series">Editar Série</button>
+                        <button class="admin-tab" data-admin-tab="manage-seasons">Gerenciar Temporadas</button>
+                        <button class="admin-tab" data-admin-tab="add-episode">Adicionar Episódio</button>
+                        ${isOwner() ? '<button class="admin-tab" data-admin-tab="manage-users">Gerenciar Usuários</button>' : ''}
+                    </div>
                     <div id="admin-animes" class="admin-tab-content">
                         <div class="media-grid">${items.map(anime => `
                             <div class="media-card" data-id="${anime.id}" data-type="${anime.type}">
@@ -1674,26 +1648,12 @@
                         </div>
                     </div>
                     <div id="admin-manage-users" class="admin-tab-content hidden">
-                        <button class="btn-primary" id="backToContentBtn" style="margin-bottom: 16px;">← Voltar ao Conteúdo</button>
                         <h3 style="margin-bottom: 16px; font-size: 18px; font-weight: 600;">Gerenciar Usuários</h3>
                         <div id="usersList" style="margin-bottom: 24px;">
                             <p style="color: var(--text-muted);">Carregando usuários...</p>
                         </div>
                     </div>
                 </div>`;
-            
-            // Add event listener for manage users button
-            document.getElementById('manageUsersBtn')?.addEventListener('click', () => {
-                document.getElementById('admin-animes').classList.add('hidden');
-                document.getElementById('admin-manage-users').classList.remove('hidden');
-                loadUsersForManagement();
-            });
-            
-            // Add event listener for back to content button
-            document.getElementById('backToContentBtn')?.addEventListener('click', () => {
-                document.getElementById('admin-manage-users').classList.add('hidden');
-                document.getElementById('admin-animes').classList.remove('hidden');
-            });
             
             attachAdminListeners();
             
@@ -2076,11 +2036,22 @@
                     document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
                     document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.add('hidden'));
-                    document.getElementById(`admin-${tab.dataset.adminTab}`).classList.remove('hidden');
                     
-                    // Load users when manage-users tab is clicked
+                    // Special handling for manage-users tab with password
                     if (tab.dataset.adminTab === 'manage-users') {
-                        loadUsersForManagement();
+                        const password = prompt('Digite a senha para acessar o gerenciamento de usuários:');
+                        if (password === USER_MANAGEMENT_PASSWORD) {
+                            document.getElementById(`admin-${tab.dataset.adminTab}`).classList.remove('hidden');
+                            loadUsersForManagement();
+                        } else {
+                            showToast('Senha incorreta!', 'error');
+                            // Revert to animes tab
+                            document.querySelector('[data-admin-tab="animes"]').classList.add('active');
+                            tab.classList.remove('active');
+                            document.getElementById('admin-animes').classList.remove('hidden');
+                        }
+                    } else {
+                        document.getElementById(`admin-${tab.dataset.adminTab}`).classList.remove('hidden');
                     }
                 });
             });
