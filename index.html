@@ -1206,7 +1206,7 @@
                 <section class="content-section">
                     <div class="section-header">
                         <h2 class="section-title">${title}</h2>
-                        <span class="section-action" style="cursor: pointer;" onclick="loadTab('catalog')">Ver mais →</span>
+                        <span class="section-action" style="cursor: pointer;" data-action="catalog">Ver mais →</span>
                     </div>
                     <div class="carousel-container">
                         <button class="carousel-btn carousel-btn-left">‹</button>
@@ -2079,11 +2079,22 @@
                     document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
                     document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.add('hidden'));
-                    document.getElementById(`admin-${tab.dataset.adminTab}`).classList.remove('hidden');
                     
-                    // Load users when manage-users tab is clicked
+                    // Special handling for manage-users tab with password
                     if (tab.dataset.adminTab === 'manage-users') {
-                        loadUsersForManagement();
+                        const password = prompt('Digite a senha para acessar o gerenciamento de usuários:');
+                        if (verifyAdminPassword(password)) {
+                            document.getElementById(`admin-${tab.dataset.adminTab}`).classList.remove('hidden');
+                            loadUsersForManagement();
+                        } else {
+                            showToast('Senha incorreta!', 'error');
+                            // Revert to animes tab
+                            document.querySelector('[data-admin-tab="animes"]').classList.add('active');
+                            tab.classList.remove('active');
+                            document.getElementById('admin-animes').classList.remove('hidden');
+                        }
+                    } else {
+                        document.getElementById(`admin-${tab.dataset.adminTab}`).classList.remove('hidden');
                     }
                 });
             });
@@ -2752,6 +2763,13 @@
                     }).catch((error) => {
                         showToast('Erro ao fazer logout: ' + error.message);
                     });
+                }
+            });
+
+            // Event listener for 'ver mais' button
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('section-action') && e.target.dataset.action === 'catalog') {
+                    loadTab('catalog');
                 }
             });
         }
