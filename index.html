@@ -381,6 +381,40 @@
             height: 100%;
         }
 
+        .rating-section {
+            margin-top: 24px;
+            padding: 20px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+        }
+        .rating-section h3 {
+            margin-bottom: 12px;
+            font-size: 16px;
+            color: var(--text-primary);
+        }
+        .rating-stars {
+            display: flex;
+            gap: 8px;
+        }
+        .star-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            color: var(--text-muted);
+            transition: color 0.2s, transform 0.1s;
+        }
+        .star-btn:hover {
+            color: var(--primary-pink);
+            transform: scale(1.1);
+        }
+        .star-btn.active {
+            color: var(--primary-pink);
+        }
+        .star-btn svg {
+            display: block;
+        }
+
         @media (max-width: 1024px) {
             .hero-content { max-width: 80%; }
             .anime-detail { grid-template-columns: 250px 1fr; }
@@ -543,49 +577,75 @@
 
         // Enhanced content loading with localStorage fallback
         async function loadAllContent() {
-            if (allContentCache.length > 0) {
-                return allContentCache;
-            }
+            // Force reload from Firebase - no cache, no mock
+            allContentCache = [];
             
             try {
-                const [animesSnap, seriesSnap] = await Promise.all([
+                console.log('=== LOADING FROM FIREBASE ===');
+                const [animesSnap, seriesSnap, ratingsSnap] = await Promise.all([
                     db.collection('animes').get(),
-                    db.collection('series').get()
+                    db.collection('series').get(),
+                    db.collection('ratings').get()
                 ]);
+                
+                console.log('Animes from Firebase:', animesSnap.size);
+                console.log('Series from Firebase:', seriesSnap.size);
+                console.log('Ratings from Firebase:', ratingsSnap.size);
                 
                 let items = [];
                 
                 animesSnap.forEach(doc => {
+                    const data = doc.data();
                     items.push({
                         id: doc.id,
                         type: 'movies',
-                        ...doc.data()
+                        ...data
                     });
                 });
                 
                 seriesSnap.forEach(doc => {
+                    const data = doc.data();
                     items.push({
                         id: doc.id,
                         type: 'series',
-                        ...doc.data()
+                        ...data
                     });
                 });
                 
-                if (items.length === 0) {
-                    items = loadFromLocalStorage('cachedContent') || generateMockContent();
-                }
+                // Calculate average ratings from user ratings
+                const ratingsMap = {};
+                ratingsSnap.forEach(doc => {
+                    const data = doc.data();
+                    const animeId = data.animeId;
+                    if (!ratingsMap[animeId]) {
+                        ratingsMap[animeId] = [];
+                    }
+                    ratingsMap[animeId].push(data.rating);
+                });
+                
+                // Update items with calculated average rating
+                items.forEach(item => {
+                    if (!item.averageRating && ratingsMap[item.id]) {
+                        const ratings = ratingsMap[item.id];
+                        const sum = ratings.reduce((a, b) => a + b, 0);
+                        item.averageRating = sum / ratings.length;
+                    }
+                    // Ensure averageRating exists (default to 0)
+                    if (!item.averageRating) {
+                        item.averageRating = 0;
+                    }
+                });
+                
+                console.log('Total items from Firebase:', items.length);
+                console.log('Item titles:', items.map(i => i.title));
+                console.log('==========================');
                 
                 allContentCache = items;
-                saveToLocalStorage('cachedContent', items);
                 return items;
             } catch (error) {
                 console.error('Error loading from Firebase:', error);
-                const cached = loadFromLocalStorage('cachedContent');
-                if (cached) {
-                    allContentCache = cached;
-                    return cached;
-                }
-                return generateMockContent();
+                showToast('Erro ao carregar do Firebase: ' + error.message);
+                return [];
             }
         }
 
@@ -786,7 +846,30 @@ function renderMediaCard(anime, showOverlay = true) {
 
         async function loadHomeTab() {
             const contentArea = document.getElementById('contentArea');
-            let items = await loadAllContent();
+            let items;
+            
+            try {
+                items = await loadAllContent();
+            } catch (error) {
+                console.error('Error in loadHomeTab:', error);
+                contentArea.innerHTML = `
+                    <div style="text-align: center; padding: 60px;">
+                        <h2 style="color: var(--text-secondary);">Erro ao carregar conteúdo</h2>
+                        <p style="color: var(--text-muted); margin-top: 16px;">
+                            Verifique sua conexão ou tente novamente mais tarde.
+                        </p>
+                        <button onclick="location.reload()" class="btn-primary" style="margin-top: 16px;">Recarregar</button>
+                    </div>
+                `;
+                return;
+            }
+            
+            console.log('Items loaded in home tab:', items.length);
+            console.log('Items with averageRating:', items.filter(i => i.averageRating).length);
+            console.log('Average ratings:', items.map(i => ({ title: i.title, rating: i.averageRating })));
+            const seriesCount = items.filter(i => i.type === 'series').length;
+            const seriesWithEpisodes = items.filter(i => i.type === 'series' && i.seasons && Object.keys(i.seasons).length > 0).length;
+            console.log('Series:', seriesCount, 'With episodes:', seriesWithEpisodes);
             
             // Filter by search term
             if (searchTerm) {
@@ -815,10 +898,20 @@ function renderMediaCard(anime, showOverlay = true) {
             const heroItem = items[Math.floor(Math.random() * items.length)];
             
             contentArea.innerHTML = `
+                <div style="padding: 16px; background: var(--bg-secondary); margin-bottom: 16px; border-radius: 8px;">
+                    <p style="margin: 0; font-size: 14px; color: var(--text-secondary);">
+                        📊 Total: ${items.length} | Séries: ${seriesCount} | Com episódios: ${seriesWithEpisodes} | Sem episódios: ${seriesCount - seriesWithEpisodes}
+                    </p>
+                </div>
                 <section class="hero-banner">
                     <div class="hero-background" style="background-image: url('${heroItem.imageUrl}');"></div>
                     <div class="hero-overlay"></div>
                     <div class="hero-content">
+                        <div style="margin-bottom: 12px;">
+                            <span style="background: var(--primary-pink); color: white; padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: 600;">
+                                ⭐ ${(heroItem.averageRating || 0).toFixed(1)}
+                            </span>
+                        </div>
                         <h1 class="hero-title">${escapeHtml(heroItem.title)}</h1>
                         <p class="hero-description">${escapeHtml(heroItem.description)}</p>
                         <div class="hero-buttons">
@@ -881,34 +974,49 @@ function renderMediaCard(anime, showOverlay = true) {
                 return;
             }
             
+            console.log('=== FULL ANIME DATA ===');
+            console.log('Anime:', JSON.stringify(anime, null, 2));
+            console.log('All keys:', Object.keys(anime));
+            console.log('====================');
+            
             const isMovie = anime.type === 'movies';
             const seasons = anime.seasons || {};
-            const seasonNames = Object.keys(seasons);
             
             let seasonsHtml = '';
-            if (!isMovie && seasonNames.length > 0) {
+            
+            if (!isMovie && seasons && Object.keys(seasons).length > 0) {
                 seasonsHtml = `
                 <div class="seasons-container">
-                    ${seasonNames.map(seasonName => `
+                    ${Object.keys(seasons).map(seasonName => {
+                        const episodes = seasons[seasonName];
+                        return `
                         <div class="season-section">
                             <div class="season-header" data-season="${seasonName}">
                                 <span class="season-title">${escapeHtml(seasonName)}</span>
-                                <span class="season-episodes-count">${seasons[seasonName].length} episódios</span>
+                                <span class="season-episodes-count">${Array.isArray(episodes) ? episodes.length : 0} episódios</span>
                             </div>
                             <div class="episodes-grid">
-                                ${seasons[seasonName].map((ep, idx) => `
+                                ${Array.isArray(episodes) ? episodes.map((ep, idx) => `
                                     <div class="episode-card" data-ep-index="${idx}">
                                         <div class="episode-number">EP ${idx + 1}</div>
-                                        <div class="episode-title">${escapeHtml(ep.name)}</div>
+                                        <div class="episode-title">${escapeHtml(ep.name || ep.title || `Episódio ${idx + 1}`)}</div>
                                         <div class="episode-actions">
-                                            ${ep.dubLink ? `<button class="episode-btn dub" data-link="${ep.dubLink}">Dublado</button>` : ''}
-                                            ${ep.legLink ? `<button class="episode-btn leg" data-link="${ep.legLink}">Legendado</button>` : ''}
+                                            ${ep.dubLink || ep.dub ? `<button class="episode-btn dub" data-link="${ep.dubLink || ep.dub}">Dublado</button>` : ''}
+                                            ${ep.legLink || ep.leg ? `<button class="episode-btn leg" data-link="${ep.legLink || ep.leg}">Legendado</button>` : ''}
                                         </div>
                                     </div>
-                                `).join('')}
+                                `).join('') : '<p style="color: var(--text-muted);">Nenhum episódio nesta temporada</p>'}
                             </div>
-                        </div>
-                    `).join('')}
+                        </div>`;
+                    }).join('')}
+                </div>`;
+            } else if (!isMovie) {
+                seasonsHtml = `
+                <div class="seasons-container">
+                    <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        <h3>Nenhum episódio disponível</h3>
+                        <p>Esta série ainda não tem episódios adicionados.</p>
+                    </div>
                 </div>`;
             } else if (isMovie) {
                 seasonsHtml = `
@@ -933,11 +1041,23 @@ function renderMediaCard(anime, showOverlay = true) {
                         </div>
                         <p class="anime-description">${escapeHtml(anime.description)}</p>
                         <div class="anime-genres">${categories.map(genre => `<span class="genre-tag">${genre}</span>`).join('')}</div>
+                        <div class="rating-section" style="margin-top: 24px; padding: 20px; background: var(--bg-secondary); border-radius: 8px;">
+                            <h3 style="margin-bottom: 12px; font-size: 16px;">Avaliar este conteúdo</h3>
+                            <div class="rating-stars" id="ratingStars" data-anime-id="${anime.id}">
+                                ${[1,2,3,4,5].map(star => `
+                                    <button class="star-btn" data-rating="${star}" onmouseover="highlightStars(${star})" onmouseout="resetStars()" onclick="rateAnime('${anime.id}', ${star})">
+                                        <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                                    </button>
+                                `).join('')}
+                            </div>
+                            <p id="ratingText" style="margin-top: 8px; font-size: 14px; color: var(--text-muted);">Clique nas estrelas para avaliar</p>
+                        </div>
                     </div>
                 </div>
                 ${seasonsHtml}`;
             attachEpisodeListeners();
             attachSeasonListeners();
+            loadUserRating(anime.id);
         }
 
         async function loadAdminTab() {
@@ -1205,6 +1325,106 @@ function renderMediaCard(anime, showOverlay = true) {
             player.src = '';
             modal.classList.add('hidden');
             document.body.style.overflow = '';
+        }
+
+        function highlightStars(rating) {
+            const stars = document.querySelectorAll('.star-btn');
+            stars.forEach((star, index) => {
+                if (index < rating) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+        }
+
+        function resetStars() {
+            const ratingStars = document.getElementById('ratingStars');
+            if (!ratingStars) return;
+            const animeId = ratingStars.dataset.animeId;
+            const userRating = localStorage.getItem(`user_rating_${animeId}`) || 0;
+            highlightStars(parseInt(userRating));
+        }
+
+        async function rateAnime(animeId, rating) {
+            try {
+                const userId = currentUser.uid;
+                const ratingRef = db.collection('ratings').doc(`${userId}_${animeId}`);
+                
+                await ratingRef.set({
+                    userId,
+                    animeId,
+                    rating,
+                    timestamp: new Date()
+                });
+                
+                localStorage.setItem(`user_rating_${animeId}`, rating);
+                
+                highlightStars(rating);
+                document.getElementById('ratingText').textContent = `Você avaliou com ${rating} estrela${rating > 1 ? 's' : ''}!`;
+                
+                showToast('Avaliação salva com sucesso!', 'success');
+                
+                await calculateAverageRating(animeId);
+            } catch (error) {
+                console.error('Error saving rating:', error);
+                showToast('Erro ao salvar avaliação');
+            }
+        }
+
+        async function loadUserRating(animeId) {
+            try {
+                const userId = currentUser.uid;
+                const ratingDoc = await db.collection('ratings').doc(`${userId}_${animeId}`).get();
+                
+                if (ratingDoc.exists) {
+                    const rating = ratingDoc.data().rating;
+                    localStorage.setItem(`user_rating_${animeId}`, rating);
+                    highlightStars(rating);
+                    document.getElementById('ratingText').textContent = `Você avaliou com ${rating} estrela${rating > 1 ? 's' : ''}`;
+                } else {
+                    const cachedRating = localStorage.getItem(`user_rating_${animeId}`);
+                    if (cachedRating) {
+                        highlightStars(parseInt(cachedRating));
+                        document.getElementById('ratingText').textContent = `Você avaliou com ${cachedRating} estrela${cachedRating > 1 ? 's' : ''}`;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading user rating:', error);
+            }
+        }
+
+        async function calculateAverageRating(animeId) {
+            try {
+                const ratingsSnap = await db.collection('ratings').where('animeId', '==', animeId).get();
+                
+                if (ratingsSnap.empty) return;
+                
+                let total = 0;
+                ratingsSnap.forEach(doc => {
+                    total += doc.data().rating;
+                });
+                
+                const average = total / ratingsSnap.size;
+                
+                const collectionName = animeId.startsWith('mock') ? 'animes' : 'series';
+                const doc = await db.collection(collectionName).doc(animeId).get();
+                
+                if (doc.exists) {
+                    await db.collection(collectionName).doc(animeId).update({
+                        averageRating: average
+                    });
+                    
+                    allContentCache = [];
+                    
+                    const ratingDisplay = document.querySelector('.anime-meta span:first-child');
+                    if (ratingDisplay) {
+                        ratingDisplay.textContent = `⭐ ${average.toFixed(1)}`;
+                    }
+                }
+            } catch (error) {
+                console.error('Error calculating average rating:', error);
+            }
         }
 
         function attachSeasonListeners() {
