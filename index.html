@@ -845,6 +845,20 @@
         const RATE_LIMIT_WINDOW = 60000; // 1 minute
         const RATE_LIMIT_MAX_REQUESTS = 10;
 
+        // Security: Admin password protection
+        // Password: 77997799 (encoded)
+        const ADMIN_PASSWORD = atob('Nzc5OTc3OTk=');
+        const OWNER_EMAIL = 'joaodidier@proton.me';
+        let adminPasswordVerified = false;
+
+        function verifyAdminPassword(password) {
+            return password === ADMIN_PASSWORD;
+        }
+
+        function isOwner() {
+            return currentUser && currentUser.email === OWNER_EMAIL;
+        }
+
         function checkRateLimit(action, userId) {
             const key = `${action}_${userId}`;
             const now = Date.now();
@@ -1495,6 +1509,43 @@
                 return;
             }
             
+            // Check admin password if not already verified
+            if (!adminPasswordVerified) {
+                contentArea.innerHTML = `
+                    <div style="text-align: center; padding: 60px;">
+                        <h2 style="color: var(--text-secondary);">Autenticação Admin</h2>
+                        <p style="color: var(--text-muted); margin-top: 16px; margin-bottom: 24px;">
+                            Digite a senha de administrador para acessar o painel.
+                        </p>
+                        <div style="max-width: 300px; margin: 0 auto;">
+                            <input type="password" id="adminPasswordInput" placeholder="Senha do admin" 
+                                style="width: 100%; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-color);
+                                background: var(--bg-secondary); color: var(--text-primary); font-size: 14px; outline: none; margin-bottom: 16px;">
+                            <button id="adminPasswordSubmit" class="btn-primary" style="width: 100%;">Acessar</button>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('adminPasswordSubmit')?.addEventListener('click', () => {
+                    const password = document.getElementById('adminPasswordInput').value;
+                    if (verifyAdminPassword(password)) {
+                        adminPasswordVerified = true;
+                        loadAdminTab();
+                    } else {
+                        showToast('Senha incorreta!', 'error');
+                        document.getElementById('adminPasswordInput').value = '';
+                    }
+                });
+                
+                document.getElementById('adminPasswordInput')?.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        document.getElementById('adminPasswordSubmit').click();
+                    }
+                });
+                
+                return;
+            }
+            
             const items = await loadAllContent();
             
             contentArea.innerHTML = `
@@ -1508,7 +1559,7 @@
                         <button class="admin-tab" data-admin-tab="edit-series">Editar Série</button>
                         <button class="admin-tab" data-admin-tab="manage-seasons">Gerenciar Temporadas</button>
                         <button class="admin-tab" data-admin-tab="add-episode">Adicionar Episódio</button>
-                        ${userData && userData.email && userData.email.toLowerCase() === 'joaodidier@proton.me' ? '<button class="admin-tab" data-admin-tab="manage-users">Gerenciar Usuários</button>' : ''}
+                        ${isOwner() ? '<button class="admin-tab" data-admin-tab="manage-users">Gerenciar Usuários</button>' : ''}
                     </div>
                     <div id="admin-animes" class="admin-tab-content">
                         <div class="media-grid">${items.map(anime => `
@@ -2544,7 +2595,7 @@
             if (!usersList) return;
             
             // Owner-only check - only joaodidier@proton.me can access
-            if (!currentUser || !userData || userData.email.toLowerCase() !== 'joaodidier@proton.me') {
+            if (!isOwner()) {
                 usersList.innerHTML = '<p style="color: var(--text-muted);">Acesso negado. Apenas o owner pode acessar esta função.</p>';
                 return;
             }
@@ -2575,7 +2626,7 @@
                             </div>
                         </div>
                         <div style="display: flex; gap: 8px;">
-                            ${user.email.toLowerCase() !== 'joaodidier@proton.me' ? `
+                            ${user.email.toLowerCase() !== OWNER_EMAIL.toLowerCase() ? `
                                 ${user.isAdmin ? `
                                     <button class="btn-danger" data-demote-user="${user.id}" style="padding: 6px 12px; font-size: 12px;">Remover Admin</button>
                                 ` : `
@@ -2590,7 +2641,7 @@
                 document.querySelectorAll('[data-promote-user]').forEach(btn => {
                     btn.addEventListener('click', async () => {
                         // Owner-only check
-                        if (!currentUser || !userData || userData.email.toLowerCase() !== 'joaodidier@proton.me') {
+                        if (!isOwner()) {
                             showToast('Acesso negado. Apenas o owner pode promover admins.');
                             return;
                         }
@@ -2611,7 +2662,7 @@
                 document.querySelectorAll('[data-demote-user]').forEach(btn => {
                     btn.addEventListener('click', async () => {
                         // Owner-only check
-                        if (!currentUser || !userData || userData.email.toLowerCase() !== 'joaodidier@proton.me') {
+                        if (!isOwner()) {
                             showToast('Acesso negado. Apenas o owner pode remover admins.');
                             return;
                         }
@@ -2736,13 +2787,13 @@
                         if (userDoc.exists) {
                             userData = userDoc.data();
                             // Auto-admin for joaodidier@proton.me
-                            if (user.email.toLowerCase() === 'joaodidier@proton.me' && !userData.isAdmin) {
+                            if (user.email.toLowerCase() === OWNER_EMAIL.toLowerCase() && !userData.isAdmin) {
                                 await db.collection('users').doc(user.uid).update({ isAdmin: true });
                                 userData.isAdmin = true;
                             }
                         } else {
-                            // Auto-admin for joaodidier@proton.me
-                            const isAdmin = user.email.toLowerCase() === 'joaodidier@proton.me';
+                            // Auto-admin for owner
+                            const isAdmin = user.email.toLowerCase() === OWNER_EMAIL.toLowerCase();
                             userData = { name: user.email.split('@')[0], email: user.email, isAdmin };
                             await db.collection('users').doc(user.uid).set(userData);
                         }
@@ -2872,8 +2923,8 @@
                 
                 try {
                     const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-                    // Auto-admin for joaodidier@proton.me
-                    const isAdmin = email.toLowerCase() === 'joaodidier@proton.me';
+                    // Auto-admin for owner
+                    const isAdmin = email.toLowerCase() === OWNER_EMAIL.toLowerCase();
                     await db.collection('users').doc(userCredential.user.uid).set({
                         name,
                         email,
