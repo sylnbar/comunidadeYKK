@@ -2847,6 +2847,8 @@
 
         function showLoginScreen() {
             const contentArea = document.getElementById('contentArea');
+            // Clear admin password verification when showing login screen
+            adminPasswordVerified = false;
             contentArea.innerHTML = `
                 <div style="display: flex; justify-content: center; align-items: center; min-height: 60vh;">
                     <div style="background: var(--bg-card); padding: 40px; border-radius: 12px; border: 1px solid var(--border-color); width: 100%; max-width: 400px;">
