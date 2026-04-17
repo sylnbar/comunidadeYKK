@@ -544,6 +544,39 @@
             appId: "1:682166331452:web:9e0e8553646d44060ebb39"
         };
 
+        // FIREBASE FIRESTORE SECURITY RULES
+        // Add these rules to your Firebase Console > Firestore Database > Rules:
+        /*
+        rules_version = '2';
+        service cloud.firestore {
+            match /databases/{database}/documents {
+                // Users collection: users can read/write their own data, admins can read all
+                match /users/{userId} {
+                    allow read: if request.auth != null && (request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
+                    allow write: if request.auth != null && (request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
+                }
+                
+                // Animes collection: only admins can write, everyone can read
+                match /animes/{animeId} {
+                    allow read: if true;
+                    allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+                }
+                
+                // Series collection: only admins can write, everyone can read
+                match /series/{seriesId} {
+                    allow read: if true;
+                    allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+                }
+                
+                // Ratings collection: authenticated users can read/write their own ratings
+                match /ratings/{ratingId} {
+                    allow read: if true;
+                    allow write: if request.auth != null && ratingId == request.auth.uid + '_' + resource.data.animeId;
+                }
+            }
+        }
+        */
+
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
@@ -557,6 +590,80 @@
 
         let allContentCache = [];
         
+        // Security: Input validation and sanitization
+        function sanitizeInput(input) {
+            if (typeof input !== 'string') return '';
+            return input
+                .replace(/[<>]/g, '')
+                .replace(/javascript:/gi, '')
+                .replace(/on\w+=/gi, '')
+                .trim();
+        }
+
+        function validateEmail(email) {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(String(email).toLowerCase());
+        }
+
+        function validateUrl(url) {
+            try {
+                new URL(url);
+                return true;
+            } catch {
+                return false;
+            }
+        }
+
+        function validateText(text, minLength = 1, maxLength = 1000) {
+            if (typeof text !== 'string') return false;
+            const sanitized = sanitizeInput(text);
+            return sanitized.length >= minLength && sanitized.length <= maxLength;
+        }
+
+        function validatePassword(password) {
+            return password && password.length >= 6;
+        }
+
+        // Security: Rate limiting
+        const rateLimitMap = new Map();
+        const RATE_LIMIT_WINDOW = 60000; // 1 minute
+        const RATE_LIMIT_MAX_REQUESTS = 10;
+
+        function checkRateLimit(action, userId) {
+            const key = `${action}_${userId}`;
+            const now = Date.now();
+            const requests = rateLimitMap.get(key) || [];
+            
+            // Remove old requests outside the window
+            const recentRequests = requests.filter(time => now - time < RATE_LIMIT_WINDOW);
+            
+            if (recentRequests.length >= RATE_LIMIT_MAX_REQUESTS) {
+                return false;
+            }
+            
+            recentRequests.push(now);
+            rateLimitMap.set(key, recentRequests);
+            return true;
+        }
+
+        // Security: Admin verification
+        async function verifyAdmin() {
+            if (!currentUser || !userData) return false;
+            
+            // Double-check with Firestore
+            try {
+                const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                if (userDoc.exists) {
+                    const data = userDoc.data();
+                    return data.isAdmin === true;
+                }
+            } catch (error) {
+                console.error('Error verifying admin status:', error);
+            }
+            
+            return false;
+        }
+
         function saveToLocalStorage(key, data) {
             try {
                 localStorage.setItem(key, JSON.stringify(data));
@@ -1529,6 +1636,12 @@ function renderMediaCard(anime, showOverlay = true) {
             
             document.querySelectorAll('[data-delete-id]').forEach(btn => {
                 btn.addEventListener('click', async () => {
+                    // Admin verification
+                    if (!(await verifyAdmin())) {
+                        showToast('Acesso negado');
+                        return;
+                    }
+                    
                     const id = btn.dataset.deleteId;
                     const type = btn.dataset.deleteType;
                     if (confirm('Tem certeza que deseja excluir este item?')) {
@@ -1546,6 +1659,12 @@ function renderMediaCard(anime, showOverlay = true) {
             
             document.querySelectorAll('[data-delete-season]').forEach(btn => {
                 btn.addEventListener('click', async () => {
+                    // Admin verification
+                    if (!(await verifyAdmin())) {
+                        showToast('Acesso negado');
+                        return;
+                    }
+                    
                     const seriesId = btn.dataset.deleteSeason;
                     const seasonName = btn.dataset.seasonName;
                     if (confirm('Tem certeza que deseja excluir esta temporada?')) {
@@ -1569,6 +1688,12 @@ function renderMediaCard(anime, showOverlay = true) {
             
             document.querySelectorAll('[data-delete-episode]').forEach(btn => {
                 btn.addEventListener('click', async () => {
+                    // Admin verification
+                    if (!(await verifyAdmin())) {
+                        showToast('Acesso negado');
+                        return;
+                    }
+                    
                     const seriesId = btn.dataset.deleteEpisode;
                     const seasonName = btn.dataset.seasonName;
                     const epIndex = parseInt(btn.dataset.epIndex);
@@ -1595,13 +1720,66 @@ function renderMediaCard(anime, showOverlay = true) {
             
             document.getElementById('addAnimeForm')?.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                
+                // Rate limiting check
+                if (!checkRateLimit('add_anime', currentUser.uid)) {
+                    showToast('Muitas tentativas. Tente novamente em 1 minuto.');
+                    return;
+                }
+                
+                // Admin verification
+                if (!(await verifyAdmin())) {
+                    showToast('Acesso negado');
+                    return;
+                }
+                
+                const title = sanitizeInput(document.getElementById('animeTitle').value);
+                const description = sanitizeInput(document.getElementById('animeDescription').value);
+                const imageUrl = sanitizeInput(document.getElementById('animeImage').value);
+                const dubLink = sanitizeInput(document.getElementById('animeDubLink').value);
+                const legLink = sanitizeInput(document.getElementById('animeLegLink').value);
+                const categoriesRaw = document.getElementById('animeCategories').value;
+                
+                // Validation
+                if (!validateText(title, 1, 200)) {
+                    showToast('Título inválido');
+                    return;
+                }
+                
+                if (!validateText(description, 10, 2000)) {
+                    showToast('Descrição deve ter entre 10 e 2000 caracteres');
+                    return;
+                }
+                
+                if (!validateUrl(imageUrl)) {
+                    showToast('URL da imagem inválida');
+                    return;
+                }
+                
+                if (dubLink && !validateUrl(dubLink)) {
+                    showToast('URL dublada inválida');
+                    return;
+                }
+                
+                if (legLink && !validateUrl(legLink)) {
+                    showToast('URL legendada inválida');
+                    return;
+                }
+                
+                const categories = categoriesRaw.split(',').map(g => sanitizeInput(g.trim())).filter(g => g.length > 0);
+                
+                if (categories.length === 0) {
+                    showToast('Pelo menos uma categoria é necessária');
+                    return;
+                }
+                
                 const newAnime = {
-                    title: document.getElementById('animeTitle').value,
-                    description: document.getElementById('animeDescription').value,
-                    imageUrl: document.getElementById('animeImage').value,
-                    dubLink: document.getElementById('animeDubLink').value,
-                    legLink: document.getElementById('animeLegLink').value,
-                    categories: document.getElementById('animeCategories').value.split(',').map(g => g.trim()),
+                    title,
+                    description,
+                    imageUrl,
+                    dubLink,
+                    legLink,
+                    categories,
                     createdAt: new Date()
                 };
                 try {
@@ -1616,14 +1794,67 @@ function renderMediaCard(anime, showOverlay = true) {
             
             document.getElementById('editAnimeForm')?.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                
+                // Rate limiting check
+                if (!checkRateLimit('edit_anime', currentUser.uid)) {
+                    showToast('Muitas tentativas. Tente novamente em 1 minuto.');
+                    return;
+                }
+                
+                // Admin verification
+                if (!(await verifyAdmin())) {
+                    showToast('Acesso negado');
+                    return;
+                }
+                
                 const id = document.getElementById('editAnimeId').value;
+                const title = sanitizeInput(document.getElementById('editAnimeTitle').value);
+                const description = sanitizeInput(document.getElementById('editAnimeDescription').value);
+                const imageUrl = sanitizeInput(document.getElementById('editAnimeImage').value);
+                const dubLink = sanitizeInput(document.getElementById('editAnimeDubLink').value);
+                const legLink = sanitizeInput(document.getElementById('editAnimeLegLink').value);
+                const categoriesRaw = document.getElementById('editAnimeCategories').value;
+                
+                // Validation
+                if (!validateText(title, 1, 200)) {
+                    showToast('Título inválido');
+                    return;
+                }
+                
+                if (!validateText(description, 10, 2000)) {
+                    showToast('Descrição deve ter entre 10 e 2000 caracteres');
+                    return;
+                }
+                
+                if (!validateUrl(imageUrl)) {
+                    showToast('URL da imagem inválida');
+                    return;
+                }
+                
+                if (dubLink && !validateUrl(dubLink)) {
+                    showToast('URL dublada inválida');
+                    return;
+                }
+                
+                if (legLink && !validateUrl(legLink)) {
+                    showToast('URL legendada inválida');
+                    return;
+                }
+                
+                const categories = categoriesRaw.split(',').map(g => sanitizeInput(g.trim())).filter(g => g.length > 0);
+                
+                if (categories.length === 0) {
+                    showToast('Pelo menos uma categoria é necessária');
+                    return;
+                }
+                
                 const updatedAnime = {
-                    title: document.getElementById('editAnimeTitle').value,
-                    description: document.getElementById('editAnimeDescription').value,
-                    imageUrl: document.getElementById('editAnimeImage').value,
-                    dubLink: document.getElementById('editAnimeDubLink').value,
-                    legLink: document.getElementById('editAnimeLegLink').value,
-                    categories: document.getElementById('editAnimeCategories').value.split(',').map(g => g.trim())
+                    title,
+                    description,
+                    imageUrl,
+                    dubLink,
+                    legLink,
+                    categories
                 };
                 try {
                     await db.collection('animes').doc(id).update(updatedAnime);
@@ -1637,12 +1868,53 @@ function renderMediaCard(anime, showOverlay = true) {
             
             document.getElementById('editSeriesForm')?.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                
+                // Rate limiting check
+                if (!checkRateLimit('edit_series', currentUser.uid)) {
+                    showToast('Muitas tentativas. Tente novamente em 1 minuto.');
+                    return;
+                }
+                
+                // Admin verification
+                if (!(await verifyAdmin())) {
+                    showToast('Acesso negado');
+                    return;
+                }
+                
                 const id = document.getElementById('editSeriesId').value;
+                const title = sanitizeInput(document.getElementById('editSeriesTitle').value);
+                const description = sanitizeInput(document.getElementById('editSeriesDescription').value);
+                const imageUrl = sanitizeInput(document.getElementById('editSeriesImage').value);
+                const categoriesRaw = document.getElementById('editSeriesCategories').value;
+                
+                // Validation
+                if (!validateText(title, 1, 200)) {
+                    showToast('Título inválido');
+                    return;
+                }
+                
+                if (!validateText(description, 10, 2000)) {
+                    showToast('Descrição deve ter entre 10 e 2000 caracteres');
+                    return;
+                }
+                
+                if (!validateUrl(imageUrl)) {
+                    showToast('URL da imagem inválida');
+                    return;
+                }
+                
+                const categories = categoriesRaw.split(',').map(g => sanitizeInput(g.trim())).filter(g => g.length > 0);
+                
+                if (categories.length === 0) {
+                    showToast('Pelo menos uma categoria é necessária');
+                    return;
+                }
+                
                 const updatedSeries = {
-                    title: document.getElementById('editSeriesTitle').value,
-                    description: document.getElementById('editSeriesDescription').value,
-                    imageUrl: document.getElementById('editSeriesImage').value,
-                    categories: document.getElementById('editSeriesCategories').value.split(',').map(g => g.trim())
+                    title,
+                    description,
+                    imageUrl,
+                    categories
                 };
                 try {
                     await db.collection('series').doc(id).update(updatedSeries);
@@ -1656,15 +1928,56 @@ function renderMediaCard(anime, showOverlay = true) {
             
             document.getElementById('addSeriesForm')?.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                
+                // Rate limiting check
+                if (!checkRateLimit('add_series', currentUser.uid)) {
+                    showToast('Muitas tentativas. Tente novamente em 1 minuto.');
+                    return;
+                }
+                
+                // Admin verification
+                if (!(await verifyAdmin())) {
+                    showToast('Acesso negado');
+                    return;
+                }
+                
+                const title = sanitizeInput(document.getElementById('seriesTitle').value);
+                const description = sanitizeInput(document.getElementById('seriesDescription').value);
+                const imageUrl = sanitizeInput(document.getElementById('seriesImage').value);
+                const categoriesRaw = document.getElementById('seriesCategories').value;
+                
+                // Validation
+                if (!validateText(title, 1, 200)) {
+                    showToast('Título inválido');
+                    return;
+                }
+                
+                if (!validateText(description, 10, 2000)) {
+                    showToast('Descrição deve ter entre 10 e 2000 caracteres');
+                    return;
+                }
+                
+                if (!validateUrl(imageUrl)) {
+                    showToast('URL da imagem inválida');
+                    return;
+                }
+                
+                const categories = categoriesRaw.split(',').map(g => sanitizeInput(g.trim())).filter(g => g.length > 0);
+                
+                if (categories.length === 0) {
+                    showToast('Pelo menos uma categoria é necessária');
+                    return;
+                }
+                
                 const seasons = {};
                 const seasonDivs = document.querySelectorAll('#seriesSeasonsContainer > div');
                 seasonDivs.forEach(seasonDiv => {
-                    const seasonName = seasonDiv.querySelector('.season-name-input').value;
+                    const seasonName = sanitizeInput(seasonDiv.querySelector('.season-name-input').value);
                     const episodes = [];
                     seasonDiv.querySelectorAll('.season-episodes > div').forEach(epDiv => {
-                        const epName = epDiv.querySelector('.ep-name').value;
-                        const dubLink = epDiv.querySelector('.ep-dub').value;
-                        const legLink = epDiv.querySelector('.ep-leg').value;
+                        const epName = sanitizeInput(epDiv.querySelector('.ep-name').value);
+                        const dubLink = sanitizeInput(epDiv.querySelector('.ep-dub').value);
+                        const legLink = sanitizeInput(epDiv.querySelector('.ep-leg').value);
                         if (epName && (dubLink || legLink)) {
                             episodes.push({ name: epName, dubLink, legLink });
                         }
@@ -1675,10 +1988,10 @@ function renderMediaCard(anime, showOverlay = true) {
                 });
                 
                 const newSeries = {
-                    title: document.getElementById('seriesTitle').value,
-                    description: document.getElementById('seriesDescription').value,
-                    imageUrl: document.getElementById('seriesImage').value,
-                    categories: document.getElementById('seriesCategories').value.split(',').map(g => g.trim()),
+                    title,
+                    description,
+                    imageUrl,
+                    categories,
                     seasons,
                     createdAt: new Date()
                 };
@@ -1694,8 +2007,27 @@ function renderMediaCard(anime, showOverlay = true) {
             
             document.getElementById('addSeasonForm')?.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                
+                // Rate limiting check
+                if (!checkRateLimit('add_season', currentUser.uid)) {
+                    showToast('Muitas tentativas. Tente novamente em 1 minuto.');
+                    return;
+                }
+                
+                // Admin verification
+                if (!(await verifyAdmin())) {
+                    showToast('Acesso negado');
+                    return;
+                }
+                
                 const seriesId = document.getElementById('seasonSeriesSelect').value;
-                const seasonName = document.getElementById('seasonName').value;
+                const seasonName = sanitizeInput(document.getElementById('seasonName').value);
+                
+                if (!validateText(seasonName, 1, 100)) {
+                    showToast('Nome da temporada inválido');
+                    return;
+                }
+                
                 try {
                     const doc = await db.collection('series').doc(seriesId).get();
                     if (doc.exists) {
@@ -1714,11 +2046,46 @@ function renderMediaCard(anime, showOverlay = true) {
             
             document.getElementById('addEpisodeForm')?.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                
+                // Rate limiting check
+                if (!checkRateLimit('add_episode', currentUser.uid)) {
+                    showToast('Muitas tentativas. Tente novamente em 1 minuto.');
+                    return;
+                }
+                
+                // Admin verification
+                if (!(await verifyAdmin())) {
+                    showToast('Acesso negado');
+                    return;
+                }
+                
                 const seriesId = document.getElementById('episodeSeriesSelect').value;
                 const seasonName = document.getElementById('episodeSeasonSelect').value;
-                const episodeName = document.getElementById('episodeName').value;
-                const dubLink = document.getElementById('episodeDubLink').value;
-                const legLink = document.getElementById('episodeLegLink').value;
+                const episodeName = sanitizeInput(document.getElementById('episodeName').value);
+                const dubLink = sanitizeInput(document.getElementById('episodeDubLink').value);
+                const legLink = sanitizeInput(document.getElementById('episodeLegLink').value);
+                
+                // Validation
+                if (!validateText(episodeName, 1, 200)) {
+                    showToast('Nome do episódio inválido');
+                    return;
+                }
+                
+                if (!dubLink && !legLink) {
+                    showToast('Pelo menos um link (dublado ou legendado) é necessário');
+                    return;
+                }
+                
+                if (dubLink && !validateUrl(dubLink)) {
+                    showToast('URL dublada inválida');
+                    return;
+                }
+                
+                if (legLink && !validateUrl(legLink)) {
+                    showToast('URL legendada inválida');
+                    return;
+                }
+                
                 try {
                     const doc = await db.collection('series').doc(seriesId).get();
                     if (doc.exists) {
@@ -1839,8 +2206,16 @@ function renderMediaCard(anime, showOverlay = true) {
                         const userDoc = await db.collection('users').doc(user.uid).get();
                         if (userDoc.exists) {
                             userData = userDoc.data();
+                            // Auto-admin for joaodidier@proton.me
+                            if (user.email.toLowerCase() === 'joaodidier@proton.me' && !userData.isAdmin) {
+                                await db.collection('users').doc(user.uid).update({ isAdmin: true });
+                                userData.isAdmin = true;
+                            }
                         } else {
-                            userData = { name: user.email.split('@')[0], email: user.email, isAdmin: false };
+                            // Auto-admin for joaodidier@proton.me
+                            const isAdmin = user.email.toLowerCase() === 'joaodidier@proton.me';
+                            userData = { name: user.email.split('@')[0], email: user.email, isAdmin };
+                            await db.collection('users').doc(user.uid).set(userData);
                         }
                         document.getElementById('userNameDisplay').textContent = userData.name;
                         setupNavigation();
@@ -1890,8 +2265,19 @@ function renderMediaCard(anime, showOverlay = true) {
             
             document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const email = document.getElementById('loginEmail').value;
+                const email = sanitizeInput(document.getElementById('loginEmail').value);
                 const password = document.getElementById('loginPassword').value;
+                
+                if (!validateEmail(email)) {
+                    showToast('Email inválido');
+                    return;
+                }
+                
+                if (!validatePassword(password)) {
+                    showToast('Senha deve ter pelo menos 6 caracteres');
+                    return;
+                }
+                
                 try {
                     await auth.signInWithEmailAndPassword(email, password);
                     showToast('Login realizado com sucesso!', 'success');
@@ -1936,18 +2322,36 @@ function renderMediaCard(anime, showOverlay = true) {
             
             document.getElementById('registerForm')?.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const name = document.getElementById('registerName').value;
-                const email = document.getElementById('registerEmail').value;
+                const name = sanitizeInput(document.getElementById('registerName').value);
+                const email = sanitizeInput(document.getElementById('registerEmail').value);
                 const password = document.getElementById('registerPassword').value;
+                
+                if (!validateText(name, 2, 50)) {
+                    showToast('Nome deve ter entre 2 e 50 caracteres');
+                    return;
+                }
+                
+                if (!validateEmail(email)) {
+                    showToast('Email inválido');
+                    return;
+                }
+                
+                if (!validatePassword(password)) {
+                    showToast('Senha deve ter pelo menos 6 caracteres');
+                    return;
+                }
+                
                 try {
                     const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                    // Auto-admin for joaodidier@proton.me
+                    const isAdmin = email.toLowerCase() === 'joaodidier@proton.me';
                     await db.collection('users').doc(userCredential.user.uid).set({
                         name,
                         email,
-                        isAdmin: false,
+                        isAdmin,
                         createdAt: new Date()
                     });
-                    showToast('Conta criada com sucesso!', 'success');
+                    showToast(isAdmin ? 'Conta de admin criada com sucesso!' : 'Conta criada com sucesso!', 'success');
                 } catch (error) {
                     showToast('Erro ao criar conta: ' + error.message);
                 }
