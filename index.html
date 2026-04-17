@@ -1069,8 +1069,10 @@ function renderMediaCard(anime, showOverlay = true) {
                     <h2 style="margin-bottom: 24px; font-size: 24px; font-weight: 700;">Painel Administrativo</h2>
                     <div class="admin-tabs">
                         <button class="admin-tab active" data-admin-tab="animes">Conteúdo</button>
-                        <button class="admin-tab" data-admin-tab="add-anime">Adicionar Anime</button>
+                        <button class="admin-tab" data-admin-tab="add-anime">Adicionar Filme</button>
                         <button class="admin-tab" data-admin-tab="add-series">Adicionar Série</button>
+                        <button class="admin-tab" data-admin-tab="edit-anime">Editar Filme</button>
+                        <button class="admin-tab" data-admin-tab="edit-series">Editar Série</button>
                         <button class="admin-tab" data-admin-tab="manage-seasons">Gerenciar Temporadas</button>
                         <button class="admin-tab" data-admin-tab="add-episode">Adicionar Episódio</button>
                     </div>
@@ -1086,6 +1088,7 @@ function renderMediaCard(anime, showOverlay = true) {
                                         <span>${anime.seasons ? Object.keys(anime.seasons).length : 0} temporadas</span>
                                     </div>
                                     <div style="margin-top: 12px; display: flex; gap: 8px;">
+                                        <button class="btn-primary" style="flex: 1;" data-edit-id="${anime.id}" data-edit-type="${anime.type}">Editar</button>
                                         <button class="btn-danger" style="flex: 1;" data-delete-id="${anime.id}" data-delete-type="${anime.type === 'movies' ? 'animes' : 'series'}">Excluir</button>
                                     </div>
                                 </div>
@@ -1114,6 +1117,32 @@ function renderMediaCard(anime, showOverlay = true) {
                             <div id="seriesSeasonsContainer"></div>
                             <button type="button" id="addSeriesSeasonBtn" class="btn-primary" style="margin-top: 12px;">+ Adicionar Temporada</button>
                             <button type="submit" class="btn-primary" style="margin-top: 12px;">Adicionar Série</button>
+                        </form>
+                    </div>
+                    <div id="admin-edit-anime" class="admin-tab-content hidden">
+                        <form class="admin-form" id="editAnimeForm">
+                            <h3 style="margin-bottom: 16px;">Editar Filme</h3>
+                            <input type="hidden" id="editAnimeId">
+                            <div class="form-group"><label class="form-label">Título</label><input type="text" class="form-input" id="editAnimeTitle" required placeholder="Digite o título"></div>
+                            <div class="form-group"><label class="form-label">Descrição</label><textarea class="form-textarea" id="editAnimeDescription" required placeholder="Digite a descrição"></textarea></div>
+                            <div class="form-group"><label class="form-label">URL da Imagem</label><input type="url" class="form-input" id="editAnimeImage" required placeholder="https://exemplo.com/imagem.jpg"></div>
+                            <div class="form-group"><label class="form-label">Link Dublado</label><input type="url" class="form-input" id="editAnimeDubLink" placeholder="https://exemplo.com/dub"></div>
+                            <div class="form-group"><label class="form-label">Link Legendado</label><input type="url" class="form-input" id="editAnimeLegLink" placeholder="https://exemplo.com/leg"></div>
+                            <div class="form-group"><label class="form-label">Categorias (separadas por vírgula)</label><input type="text" class="form-input" id="editAnimeCategories" required placeholder="Ação, Aventura"></div>
+                            <button type="submit" class="btn-primary">Salvar Alterações</button>
+                            <button type="button" class="btn-secondary" onclick="loadAdminTab()">Cancelar</button>
+                        </form>
+                    </div>
+                    <div id="admin-edit-series" class="admin-tab-content hidden">
+                        <form class="admin-form" id="editSeriesForm">
+                            <h3 style="margin-bottom: 16px;">Editar Série</h3>
+                            <input type="hidden" id="editSeriesId">
+                            <div class="form-group"><label class="form-label">Título</label><input type="text" class="form-input" id="editSeriesTitle" required placeholder="Digite o título"></div>
+                            <div class="form-group"><label class="form-label">Descrição</label><textarea class="form-textarea" id="editSeriesDescription" required placeholder="Digite a descrição"></textarea></div>
+                            <div class="form-group"><label class="form-label">URL da Imagem</label><input type="url" class="form-input" id="editSeriesImage" required placeholder="https://exemplo.com/imagem.jpg"></div>
+                            <div class="form-group"><label class="form-label">Categorias (separadas por vírgula)</label><input type="text" class="form-input" id="editSeriesCategories" required placeholder="Ação, Aventura"></div>
+                            <button type="submit" class="btn-primary">Salvar Alterações</button>
+                            <button type="button" class="btn-secondary" onclick="loadAdminTab()">Cancelar</button>
                         </form>
                     </div>
                     <div id="admin-manage-seasons" class="admin-tab-content hidden">
@@ -1445,6 +1474,45 @@ function renderMediaCard(anime, showOverlay = true) {
                 });
             });
             
+            document.querySelectorAll('[data-edit-id]').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const id = btn.dataset.editId;
+                    const type = btn.dataset.editType;
+                    const items = await loadAllContent();
+                    const item = items.find(i => i.id === id);
+                    
+                    if (!item) return;
+                    
+                    if (type === 'movies') {
+                        document.getElementById('editAnimeId').value = id;
+                        document.getElementById('editAnimeTitle').value = item.title || '';
+                        document.getElementById('editAnimeDescription').value = item.description || '';
+                        document.getElementById('editAnimeImage').value = item.imageUrl || '';
+                        document.getElementById('editAnimeDubLink').value = item.dubLink || '';
+                        document.getElementById('editAnimeLegLink').value = item.legLink || '';
+                        document.getElementById('editAnimeCategories').value = (item.categories || []).join(', ');
+                        
+                        // Switch to edit anime tab
+                        document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+                        document.querySelector('[data-admin-tab="edit-anime"]').classList.add('active');
+                        document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.add('hidden'));
+                        document.getElementById('admin-edit-anime').classList.remove('hidden');
+                    } else if (type === 'series') {
+                        document.getElementById('editSeriesId').value = id;
+                        document.getElementById('editSeriesTitle').value = item.title || '';
+                        document.getElementById('editSeriesDescription').value = item.description || '';
+                        document.getElementById('editSeriesImage').value = item.imageUrl || '';
+                        document.getElementById('editSeriesCategories').value = (item.categories || []).join(', ');
+                        
+                        // Switch to edit series tab
+                        document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+                        document.querySelector('[data-admin-tab="edit-series"]').classList.add('active');
+                        document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.add('hidden'));
+                        document.getElementById('admin-edit-series').classList.remove('hidden');
+                    }
+                });
+            });
+            
             document.querySelectorAll('[data-delete-id]').forEach(btn => {
                 btn.addEventListener('click', async () => {
                     const id = btn.dataset.deleteId;
@@ -1529,6 +1597,46 @@ function renderMediaCard(anime, showOverlay = true) {
                     loadAdminTab();
                 } catch (error) {
                     showToast('Erro ao adicionar: ' + error.message);
+                }
+            });
+            
+            document.getElementById('editAnimeForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const id = document.getElementById('editAnimeId').value;
+                const updatedAnime = {
+                    title: document.getElementById('editAnimeTitle').value,
+                    description: document.getElementById('editAnimeDescription').value,
+                    imageUrl: document.getElementById('editAnimeImage').value,
+                    dubLink: document.getElementById('editAnimeDubLink').value,
+                    legLink: document.getElementById('editAnimeLegLink').value,
+                    categories: document.getElementById('editAnimeCategories').value.split(',').map(g => g.trim())
+                };
+                try {
+                    await db.collection('animes').doc(id).update(updatedAnime);
+                    allContentCache = [];
+                    showToast('Filme atualizado com sucesso!', 'success');
+                    loadAdminTab();
+                } catch (error) {
+                    showToast('Erro ao atualizar: ' + error.message);
+                }
+            });
+            
+            document.getElementById('editSeriesForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const id = document.getElementById('editSeriesId').value;
+                const updatedSeries = {
+                    title: document.getElementById('editSeriesTitle').value,
+                    description: document.getElementById('editSeriesDescription').value,
+                    imageUrl: document.getElementById('editSeriesImage').value,
+                    categories: document.getElementById('editSeriesCategories').value.split(',').map(g => g.trim())
+                };
+                try {
+                    await db.collection('series').doc(id).update(updatedSeries);
+                    allContentCache = [];
+                    showToast('Série atualizada com sucesso!', 'success');
+                    loadAdminTab();
+                } catch (error) {
+                    showToast('Erro ao atualizar: ' + error.message);
                 }
             });
             
