@@ -1062,6 +1062,20 @@ function renderMediaCard(anime, showOverlay = true) {
 
         async function loadAdminTab() {
             const contentArea = document.getElementById('contentArea');
+            
+            // Check if user is admin
+            if (!userData || !userData.isAdmin) {
+                contentArea.innerHTML = `
+                    <div style="text-align: center; padding: 60px;">
+                        <h2 style="color: var(--text-secondary);">Acesso Negado</h2>
+                        <p style="color: var(--text-muted); margin-top: 16px;">
+                            Você não tem permissão para acessar o painel administrativo.
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+            
             const items = await loadAllContent();
             
             contentArea.innerHTML = `
@@ -1744,6 +1758,11 @@ function renderMediaCard(anime, showOverlay = true) {
         }
 
         function setupNavigation() {
+            // Hide admin tab for non-admin users
+            if (!userData || !userData.isAdmin) {
+                document.querySelectorAll('[data-tab="admin"]').forEach(el => el.style.display = 'none');
+            }
+            
             document.querySelectorAll('.nav-item').forEach(item => {
                 item.addEventListener('click', () => {
                     const tab = item.dataset.tab;
@@ -1782,7 +1801,14 @@ function renderMediaCard(anime, showOverlay = true) {
             });
 
             document.getElementById('logoutButton')?.addEventListener('click', () => {
-                if (confirm('Tem certeza que deseja sair?')) location.reload();
+                if (confirm('Tem certeza que deseja sair?')) {
+                    auth.signOut().then(() => {
+                        showToast('Logout realizado com sucesso!', 'success');
+                        location.reload();
+                    }).catch((error) => {
+                        showToast('Erro ao fazer logout: ' + error.message);
+                    });
+                }
             });
         }
 
@@ -1805,17 +1831,31 @@ function renderMediaCard(anime, showOverlay = true) {
         async function initializeApp() {
             try {
                 console.log('Initializing YK Server...');
-                currentUser = { uid: 'demo-user', email: 'admin@ykstreaming.com' };
-                userData = { name: 'Admin', email: 'admin@ykstreaming.com', isAdmin: true };
-                document.getElementById('userNameDisplay').textContent = userData.name;
-                setupNavigation();
-                await loadTab('home');
-                const app = document.getElementById('app');
-                const loading = document.getElementById('loadingScreen');
-                app.style.display = 'block';
-                setTimeout(() => app.classList.add('active'), 100);
-                loading.style.display = 'none';
-                console.log('YK Server initialized successfully');
+                
+                // Check for authenticated user
+                auth.onAuthStateChanged(async (user) => {
+                    if (user) {
+                        currentUser = user;
+                        const userDoc = await db.collection('users').doc(user.uid).get();
+                        if (userDoc.exists) {
+                            userData = userDoc.data();
+                        } else {
+                            userData = { name: user.email.split('@')[0], email: user.email, isAdmin: false };
+                        }
+                        document.getElementById('userNameDisplay').textContent = userData.name;
+                        setupNavigation();
+                        await loadTab('home');
+                        const app = document.getElementById('app');
+                        const loading = document.getElementById('loadingScreen');
+                        app.style.display = 'block';
+                        setTimeout(() => app.classList.add('active'), 100);
+                        loading.style.display = 'none';
+                        console.log('YK Server initialized successfully');
+                    } else {
+                        // Show login screen
+                        showLoginScreen();
+                    }
+                });
             } catch (error) {
                 console.error('Error initializing app:', error);
                 showToast('Erro ao inicializar aplicação');
@@ -1824,6 +1864,96 @@ function renderMediaCard(anime, showOverlay = true) {
                 if (app) app.style.display = 'block';
                 if (loading) loading.style.display = 'none';
             }
+        }
+
+        function showLoginScreen() {
+            const contentArea = document.getElementById('contentArea');
+            contentArea.innerHTML = `
+                <div style="display: flex; justify-content: center; align-items: center; min-height: 60vh;">
+                    <div style="background: var(--bg-card); padding: 40px; border-radius: 12px; border: 1px solid var(--border-color); width: 100%; max-width: 400px;">
+                        <h2 style="text-align: center; margin-bottom: 24px; color: var(--primary-pink);">YK Server</h2>
+                        <form id="loginForm" style="display: flex; flex-direction: column; gap: 16px;">
+                            <div class="form-group">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-input" id="loginEmail" required placeholder="seu@email.com">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Senha</label>
+                                <input type="password" class="form-input" id="loginPassword" required placeholder="******">
+                            </div>
+                            <button type="submit" class="btn-primary">Entrar</button>
+                            <button type="button" class="btn-secondary" id="registerBtn">Criar conta</button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('loginEmail').value;
+                const password = document.getElementById('loginPassword').value;
+                try {
+                    await auth.signInWithEmailAndPassword(email, password);
+                    showToast('Login realizado com sucesso!', 'success');
+                } catch (error) {
+                    showToast('Erro ao fazer login: ' + error.message);
+                }
+            });
+            
+            document.getElementById('registerBtn')?.addEventListener('click', showRegisterScreen);
+            
+            const loading = document.getElementById('loadingScreen');
+            if (loading) loading.style.display = 'none';
+            const app = document.getElementById('app');
+            if (app) { app.style.display = 'block'; app.classList.add('active'); }
+        }
+
+        function showRegisterScreen() {
+            const contentArea = document.getElementById('contentArea');
+            contentArea.innerHTML = `
+                <div style="display: flex; justify-content: center; align-items: center; min-height: 60vh;">
+                    <div style="background: var(--bg-card); padding: 40px; border-radius: 12px; border: 1px solid var(--border-color); width: 100%; max-width: 400px;">
+                        <h2 style="text-align: center; margin-bottom: 24px; color: var(--primary-pink);">Criar Conta</h2>
+                        <form id="registerForm" style="display: flex; flex-direction: column; gap: 16px;">
+                            <div class="form-group">
+                                <label class="form-label">Nome</label>
+                                <input type="text" class="form-input" id="registerName" required placeholder="Seu nome">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-input" id="registerEmail" required placeholder="seu@email.com">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Senha</label>
+                                <input type="password" class="form-input" id="registerPassword" required placeholder="******" minlength="6">
+                            </div>
+                            <button type="submit" class="btn-primary">Criar conta</button>
+                            <button type="button" class="btn-secondary" id="backToLoginBtn">Voltar</button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('registerForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('registerName').value;
+                const email = document.getElementById('registerEmail').value;
+                const password = document.getElementById('registerPassword').value;
+                try {
+                    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                    await db.collection('users').doc(userCredential.user.uid).set({
+                        name,
+                        email,
+                        isAdmin: false,
+                        createdAt: new Date()
+                    });
+                    showToast('Conta criada com sucesso!', 'success');
+                } catch (error) {
+                    showToast('Erro ao criar conta: ' + error.message);
+                }
+            });
+            
+            document.getElementById('backToLoginBtn')?.addEventListener('click', showLoginScreen);
         }
 
         document.addEventListener('DOMContentLoaded', () => {
