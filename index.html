@@ -191,11 +191,10 @@
             transition: all var(--transition-normal); border: 1px solid transparent; position: relative;
         }
 
-        .media-card:hover { transform: translateY(-4px) scale(1.02); border-color: var(--primary-pink); box-shadow: var(--shadow-lg); }
+        .media-card:hover { transform: translateY(-4px); border-color: var(--primary-pink); box-shadow: var(--shadow-lg); }
 
         .media-card-image { width: 100%; aspect-ratio: 2/3; overflow: hidden; background: var(--bg-secondary); position: relative; }
-        .media-card-image img { width: 100%; height: 100%; object-fit: cover; transition: transform var(--transition-normal); }
-        .media-card:hover .media-card-image img { transform: scale(1.05); }
+        .media-card-image img { width: 100%; height: 100%; object-fit: cover; }
 
         .media-card-overlay {
             position: absolute; top: 0; left: 0; right: 0; bottom: 0;
@@ -1025,9 +1024,8 @@
 
         function renderMediaCard(anime, index = 0) {
             const rating = anime.averageRating || 0;
-            const staggerClass = `stagger-${(index % 4) + 1}`;
             return `
-                <div class="media-card fade-in ${staggerClass}" data-id="${anime.id}" data-type="${anime.type}">
+                <div class="media-card" data-id="${anime.id}" data-type="${anime.type}">
                     <div class="media-card-image"><img src="${anime.imageUrl}" alt="${escapeHtml(anime.title)}" loading="lazy"></div>
                     <div class="media-card-overlay">
                         <div class="media-card-actions">
@@ -1055,18 +1053,6 @@
 
         async function loadHomeTab() {
             const contentArea = document.getElementById('contentArea');
-            
-            // Show loading skeleton
-            contentArea.innerHTML = `
-                <div style="padding: 24px;">
-                    <div class="skeleton" style="height: 300px; margin-bottom: 24px; border-radius: 12px;"></div>
-                    <div style="margin-bottom: 24px;">
-                        <div class="skeleton" style="height: 32px; width: 200px; margin-bottom: 16px;"></div>
-                        <div class="media-grid">${renderSkeleton(8)}</div>
-                    </div>
-                </div>
-            `;
-            
             let items;
             
             try {
@@ -1159,15 +1145,6 @@
         async function loadCatalogTab() {
             const contentArea = document.getElementById('contentArea');
             
-            // Show loading skeleton
-            contentArea.innerHTML = `
-                <div style="padding: 24px;">
-                    <div class="skeleton" style="height: 48px; margin-bottom: 16px; border-radius: 8px;"></div>
-                    <div class="skeleton" style="height: 48px; margin-bottom: 24px; border-radius: 8px;"></div>
-                    <div class="media-grid">${renderSkeleton(8)}</div>
-                </div>
-            `;
-            
             // Use cached items if available, otherwise load
             const items = allContentCache.length > 0 ? allContentCache : await loadAllContent();
             const filteredItems = filterContent(items);
@@ -1175,19 +1152,19 @@
             const allGenres = ['Todos', ...new Set(items.flatMap(item => getItemCategories(item)))];
             
             let html = `
-                <div class="catalog-tabs fade-in">
+                <div class="catalog-tabs">
                     <button class="catalog-tab ${currentCatalogTab === 'Todos' ? 'active' : ''}" data-catalog-tab="Todos">Todos</button>
                     <button class="catalog-tab ${currentCatalogTab === 'Filmes' ? 'active' : ''}" data-catalog-tab="Filmes">Filmes</button>
                     <button class="catalog-tab ${currentCatalogTab === 'Séries' ? 'active' : ''}" data-catalog-tab="Séries">Séries</button>
                 </div>
-                <div class="filter-bar fade-in">
+                <div class="filter-bar">
                     <div class="filter-buttons">${allGenres.map(genre => `<button class="filter-btn ${currentGenre === genre ? 'active' : ''}" data-genre="${genre}">${genre}</button>`).join('')}</div>
                 </div>`;
             
             if (filteredItems.length === 0) {
-                html += '<div class="empty-state fade-in"><h3>Nenhum conteúdo encontrado</h3><p>Tente ajustar os filtros ou o termo de busca.</p></div>';
+                html += '<div class="empty-state"><h3>Nenhum conteúdo encontrado</h3><p>Tente ajustar os filtros ou o termo de busca.</p></div>';
             } else {
-                html += `<div class="media-grid fade-in">${filteredItems.map((anime, i) => renderMediaCard(anime, i)).join('')}</div>`;
+                html += `<div class="media-grid">${filteredItems.map(anime => renderMediaCard(anime)).join('')}</div>`;
             }
             
             contentArea.innerHTML = html;
@@ -1604,9 +1581,9 @@
                 if (emptyState) emptyState.remove();
                 
                 if (filteredItems.length === 0) {
-                    contentArea.insertAdjacentHTML('beforeend', '<div class="empty-state fade-in"><h3>Nenhum conteúdo encontrado</h3><p>Tente ajustar os filtros ou o termo de busca.</p></div>');
+                    contentArea.insertAdjacentHTML('beforeend', '<div class="empty-state"><h3>Nenhum conteúdo encontrado</h3><p>Tente ajustar os filtros ou o termo de busca.</p></div>');
                 } else {
-                    contentArea.insertAdjacentHTML('beforeend', `<div class="media-grid fade-in">${filteredItems.map((anime, i) => renderMediaCard(anime, i)).join('')}</div>`);
+                    contentArea.insertAdjacentHTML('beforeend', `<div class="media-grid">${filteredItems.map(anime => renderMediaCard(anime)).join('')}</div>`);
                     attachMediaCardListeners();
                 }
             } catch (error) {
