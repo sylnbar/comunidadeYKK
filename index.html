@@ -2637,36 +2637,42 @@
                 }
                 
                 usersList.innerHTML = users.map(user => `
-                    <div style="padding: 16px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <div style="font-weight: 600; color: var(--text-primary);">${escapeHtml(user.name || 'Sem nome')}</div>
-                            <div style="font-size: 14px; color: var(--text-muted);">${escapeHtml(user.email)}</div>
-                            <div style="font-size: 12px; margin-top: 4px;">
-                                ${user.isAdmin ? '<span style="background: var(--primary-pink); color: white; padding: 2px 8px; border-radius: 4px;">ADMIN</span>' : '<span style="background: var(--bg-card); color: var(--text-muted); padding: 2px 8px; border-radius: 4px;">Usuário</span>'}
+                    <div style="padding: 20px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s;">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 700; color: var(--text-primary); font-size: 16px; margin-bottom: 4px;">${escapeHtml(user.name || 'Sem nome')}</div>
+                            <div style="font-size: 14px; color: var(--text-muted); margin-bottom: 8px;">${escapeHtml(user.email)}</div>
+                            <div style="font-size: 12px;">
+                                ${user.isAdmin ? '<span style="background: linear-gradient(135deg, #ff6b6b, #ff8e8e); color: white; padding: 4px 12px; border-radius: 6px; font-weight: 600; letter-spacing: 0.5px;">👑 ADMIN</span>' : '<span style="background: var(--bg-secondary); color: var(--text-muted); padding: 4px 12px; border-radius: 6px; font-weight: 500;">👤 Usuário</span>'}
                             </div>
                         </div>
-                        <div style="display: flex; gap: 8px;">
+                        <div style="display: flex; gap: 12px; align-items: center;">
                             ${user.email.toLowerCase() !== OWNER_EMAIL.toLowerCase() ? `
                                 ${user.isAdmin ? `
-                                    <button class="btn-danger" data-demote-user="${user.id}" style="padding: 6px 12px; font-size: 12px;">Remover Admin</button>
+                                    <button class="btn-danger" data-demote-user="${user.id}" style="padding: 10px 16px; font-size: 13px; font-weight: 600; border-radius: 8px; transition: all 0.2s;">❌ Remover Admin</button>
                                 ` : `
-                                    <button class="btn-primary" data-promote-user="${user.id}" style="padding: 6px 12px; font-size: 12px;">Tornar Admin</button>
+                                    <button class="btn-primary" data-promote-user="${user.id}" style="padding: 10px 16px; font-size: 13px; font-weight: 600; border-radius: 8px; transition: all 0.2s;">✅ Tornar Admin</button>
                                 `}
-                            ` : '<span style="font-size: 12px; color: var(--primary-pink); font-weight: 600;">Owner</span>'}
+                            ` : '<span style="font-size: 13px; color: var(--primary-pink); font-weight: 700; padding: 8px 16px; background: rgba(255, 107, 107, 0.1); border-radius: 8px;">👑 OWNER</span>'}
                         </div>
                     </div>
                 `).join('');
                 
                 // Add event listeners for promote/demote
+                console.log('Attaching promote/demote listeners...');
                 document.querySelectorAll('[data-promote-user]').forEach(btn => {
+                    console.log('Promote button found:', btn.dataset.promoteUser);
                     btn.addEventListener('click', async () => {
                         const userId = btn.dataset.promoteUser;
+                        console.log('Promote clicked for user:', userId);
                         if (confirm('Tem certeza que deseja tornar este usuário admin?')) {
                             try {
+                                console.log('Updating user to admin:', userId);
                                 await db.collection('users').doc(userId).update({ isAdmin: true });
                                 showToast('Usuário promovido a admin!', 'success');
+                                console.log('User promoted successfully');
                                 loadUsersForManagement();
                             } catch (error) {
+                                console.error('Error promoting user:', error);
                                 showToast('Erro ao promover usuário: ' + error.message);
                             }
                         }
@@ -2674,14 +2680,19 @@
                 });
                 
                 document.querySelectorAll('[data-demote-user]').forEach(btn => {
+                    console.log('Demote button found:', btn.dataset.demoteUser);
                     btn.addEventListener('click', async () => {
                         const userId = btn.dataset.demoteUser;
+                        console.log('Demote clicked for user:', userId);
                         if (confirm('Tem certeza que deseja remover o acesso de admin deste usuário?')) {
                             try {
+                                console.log('Updating user to non-admin:', userId);
                                 await db.collection('users').doc(userId).update({ isAdmin: false });
                                 showToast('Acesso de admin removido!', 'success');
+                                console.log('User demoted successfully');
                                 loadUsersForManagement();
                             } catch (error) {
+                                console.error('Error demoting user:', error);
                                 showToast('Erro ao remover admin: ' + error.message);
                             }
                         }
