@@ -1551,16 +1551,7 @@
             contentArea.innerHTML = `
                 <div class="admin-panel">
                     <h2 style="margin-bottom: 24px; font-size: 24px; font-weight: 700;">Painel Administrativo</h2>
-                    <div class="admin-tabs">
-                        <button class="admin-tab active" data-admin-tab="animes">Conteúdo</button>
-                        <button class="admin-tab" data-admin-tab="add-anime">Adicionar Filme</button>
-                        <button class="admin-tab" data-admin-tab="add-series">Adicionar Série</button>
-                        <button class="admin-tab" data-admin-tab="edit-anime">Editar Filme</button>
-                        <button class="admin-tab" data-admin-tab="edit-series">Editar Série</button>
-                        <button class="admin-tab" data-admin-tab="manage-seasons">Gerenciar Temporadas</button>
-                        <button class="admin-tab" data-admin-tab="add-episode">Adicionar Episódio</button>
-                        ${isOwner() ? '<button class="admin-tab" data-admin-tab="manage-users">Gerenciar Usuários</button>' : ''}
-                    </div>
+                    ${isOwner() ? '<button class="btn-primary" id="manageUsersBtn" style="margin-bottom: 24px;">👥 Gerenciar Usuários</button>' : ''}
                     <div id="admin-animes" class="admin-tab-content">
                         <div class="media-grid">${items.map(anime => `
                             <div class="media-card" data-id="${anime.id}" data-type="${anime.type}">
@@ -1683,12 +1674,27 @@
                         </div>
                     </div>
                     <div id="admin-manage-users" class="admin-tab-content hidden">
+                        <button class="btn-primary" id="backToContentBtn" style="margin-bottom: 16px;">← Voltar ao Conteúdo</button>
                         <h3 style="margin-bottom: 16px; font-size: 18px; font-weight: 600;">Gerenciar Usuários</h3>
                         <div id="usersList" style="margin-bottom: 24px;">
                             <p style="color: var(--text-muted);">Carregando usuários...</p>
                         </div>
                     </div>
                 </div>`;
+            
+            // Add event listener for manage users button
+            document.getElementById('manageUsersBtn')?.addEventListener('click', () => {
+                document.getElementById('admin-animes').classList.add('hidden');
+                document.getElementById('admin-manage-users').classList.remove('hidden');
+                loadUsersForManagement();
+            });
+            
+            // Add event listener for back to content button
+            document.getElementById('backToContentBtn')?.addEventListener('click', () => {
+                document.getElementById('admin-manage-users').classList.add('hidden');
+                document.getElementById('admin-animes').classList.remove('hidden');
+            });
+            
             attachAdminListeners();
             
             // Setup series season adding
@@ -2786,15 +2792,24 @@
                         const userDoc = await db.collection('users').doc(user.uid).get();
                         if (userDoc.exists) {
                             userData = userDoc.data();
-                            // Auto-admin for joaodidier@proton.me
-                            if (user.email.toLowerCase() === OWNER_EMAIL.toLowerCase() && !userData.isAdmin) {
+                            
+                            // Check email verification
+                            if (user.emailVerified && !userData.emailVerified) {
+                                await db.collection('users').doc(user.uid).update({ emailVerified: true });
+                                userData.emailVerified = true;
+                            }
+                            
+                            // Auto-admin for owner (only after email verification)
+                            if (user.email.toLowerCase() === OWNER_EMAIL.toLowerCase() && 
+                                user.emailVerified && 
+                                !userData.isAdmin) {
                                 await db.collection('users').doc(user.uid).update({ isAdmin: true });
                                 userData.isAdmin = true;
                             }
                         } else {
-                            // Auto-admin for owner
-                            const isAdmin = user.email.toLowerCase() === OWNER_EMAIL.toLowerCase();
-                            userData = { name: user.email.split('@')[0], email: user.email, isAdmin };
+                            // Auto-admin for owner (only after email verification)
+                            const isAdmin = user.email.toLowerCase() === OWNER_EMAIL.toLowerCase() && user.emailVerified;
+                            userData = { name: user.email.split('@')[0], email: user.email, isAdmin, emailVerified: user.emailVerified };
                             await db.collection('users').doc(user.uid).set(userData);
                         }
                         document.getElementById('userNameDisplay').textContent = userData.name;
@@ -2923,15 +2938,19 @@
                 
                 try {
                     const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-                    // Auto-admin for owner
+                    // Send email verification
+                    await userCredential.user.sendEmailVerification();
+                    // Auto-admin for owner (only after email verification)
                     const isAdmin = email.toLowerCase() === OWNER_EMAIL.toLowerCase();
                     await db.collection('users').doc(userCredential.user.uid).set({
                         name,
                         email,
-                        isAdmin,
+                        isAdmin: false, // Start as false, admin granted after verification
+                        emailVerified: false,
                         createdAt: new Date()
                     });
-                    showToast(isAdmin ? 'Conta de admin criada com sucesso!' : 'Conta criada com sucesso!', 'success');
+                    showToast('Conta criada! Verifique seu email para confirmar.', 'success');
+                    showLoginScreen();
                 } catch (error) {
                     showToast('Erro ao criar conta: ' + error.message);
                 }
