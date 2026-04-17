@@ -2036,11 +2036,22 @@
                     document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
                     document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.add('hidden'));
-                    document.getElementById(`admin-${tab.dataset.adminTab}`).classList.remove('hidden');
                     
-                    // Load users when manage-users tab is clicked
+                    // Special handling for manage-users tab with password
                     if (tab.dataset.adminTab === 'manage-users') {
-                        loadUsersForManagement();
+                        const password = prompt('Digite a senha para acessar o gerenciamento de usuários:');
+                        if (password === USER_MANAGEMENT_PASSWORD) {
+                            document.getElementById(`admin-${tab.dataset.adminTab}`).classList.remove('hidden');
+                            loadUsersForManagement();
+                        } else {
+                            showToast('Senha incorreta!', 'error');
+                            // Revert to animes tab
+                            document.querySelector('[data-admin-tab="animes"]').classList.add('active');
+                            tab.classList.remove('active');
+                            document.getElementById('admin-animes').classList.remove('hidden');
+                        }
+                    } else {
+                        document.getElementById(`admin-${tab.dataset.adminTab}`).classList.remove('hidden');
                     }
                 });
             });
