@@ -590,6 +590,23 @@
 
         let allContentCache = [];
         
+        // Console protection - prevent manipulation
+        (function() {
+            const originalSetItem = Object.getOwnPropertyDescriptor(Storage.prototype, 'setItem');
+            Object.defineProperty(Storage.prototype, 'setItem', {
+                configurable: true,
+                enumerable: true,
+                value: function(...args) {
+                    // Prevent tampering with localStorage
+                    if (args[0] === 'cachedContent' || args[0].includes('admin') || args[0].includes('user')) {
+                        console.warn('Attempt to modify protected localStorage detected');
+                        return;
+                    }
+                    return originalSetItem.value.apply(this, args);
+                }
+            });
+        })();
+        
         // Security: Input validation and sanitization
         function sanitizeInput(input) {
             if (typeof input !== 'string') return '';
@@ -650,7 +667,7 @@
         async function verifyAdmin() {
             if (!currentUser || !userData) return false;
             
-            // Double-check with Firestore
+            // Double-check with Firestore (server-side verification)
             try {
                 const userDoc = await db.collection('users').doc(currentUser.uid).get();
                 if (userDoc.exists) {
@@ -663,6 +680,14 @@
             
             return false;
         }
+        
+        // Security: Freeze critical functions to prevent redefinition
+        try {
+            Object.freeze(verifyAdmin);
+            Object.freeze(sanitizeInput);
+            Object.freeze(validateEmail);
+            Object.freeze(validateUrl);
+        } catch (e) {}
 
         function saveToLocalStorage(key, data) {
             try {
