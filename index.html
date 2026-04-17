@@ -858,7 +858,7 @@
         }
 
         function isOwner() {
-            return currentUser && currentUser.email === OWNER_EMAIL;
+            return currentUser && currentUser.email && currentUser.email.toLowerCase() === OWNER_EMAIL.toLowerCase();
         }
 
         function checkRateLimit(action, userId) {
@@ -1524,7 +1524,7 @@
                         <button class="admin-tab" data-admin-tab="edit-series">Editar Série</button>
                         <button class="admin-tab" data-admin-tab="manage-seasons">Gerenciar Temporadas</button>
                         <button class="admin-tab" data-admin-tab="add-episode">Adicionar Episódio</button>
-                        ${isOwner() ? '<button class="admin-tab" data-admin-tab="manage-users">Gerenciar Usuários</button>' : ''}
+                        <button class="admin-tab" data-admin-tab="manage-users">Gerenciar Usuários</button>
                     </div>
                     <div id="admin-animes" class="admin-tab-content">
                         <div class="media-grid">${items.map(anime => `
@@ -2036,22 +2036,11 @@
                     document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
                     document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.add('hidden'));
+                    document.getElementById(`admin-${tab.dataset.adminTab}`).classList.remove('hidden');
                     
-                    // Special handling for manage-users tab with password
+                    // Load users when manage-users tab is clicked
                     if (tab.dataset.adminTab === 'manage-users') {
-                        const password = prompt('Digite a senha para acessar o gerenciamento de usuários:');
-                        if (password === USER_MANAGEMENT_PASSWORD) {
-                            document.getElementById(`admin-${tab.dataset.adminTab}`).classList.remove('hidden');
-                            loadUsersForManagement();
-                        } else {
-                            showToast('Senha incorreta!', 'error');
-                            // Revert to animes tab
-                            document.querySelector('[data-admin-tab="animes"]').classList.add('active');
-                            tab.classList.remove('active');
-                            document.getElementById('admin-animes').classList.remove('hidden');
-                        }
-                    } else {
-                        document.getElementById(`admin-${tab.dataset.adminTab}`).classList.remove('hidden');
+                        loadUsersForManagement();
                     }
                 });
             });
@@ -2571,12 +2560,6 @@
             const usersList = document.getElementById('usersList');
             if (!usersList) return;
             
-            // Owner-only check - only joaodidier@proton.me can access
-            if (!isOwner()) {
-                usersList.innerHTML = '<p style="color: var(--text-muted);">Acesso negado. Apenas o owner pode acessar esta função.</p>';
-                return;
-            }
-            
             try {
                 const usersSnap = await db.collection('users').get();
                 const users = [];
@@ -2617,12 +2600,6 @@
                 // Add event listeners for promote/demote
                 document.querySelectorAll('[data-promote-user]').forEach(btn => {
                     btn.addEventListener('click', async () => {
-                        // Owner-only check
-                        if (!isOwner()) {
-                            showToast('Acesso negado. Apenas o owner pode promover admins.');
-                            return;
-                        }
-                        
                         const userId = btn.dataset.promoteUser;
                         if (confirm('Tem certeza que deseja tornar este usuário admin?')) {
                             try {
@@ -2638,12 +2615,6 @@
                 
                 document.querySelectorAll('[data-demote-user]').forEach(btn => {
                     btn.addEventListener('click', async () => {
-                        // Owner-only check
-                        if (!isOwner()) {
-                            showToast('Acesso negado. Apenas o owner pode remover admins.');
-                            return;
-                        }
-                        
                         const userId = btn.dataset.demoteUser;
                         if (confirm('Tem certeza que deseja remover o acesso de admin deste usuário?')) {
                             try {
