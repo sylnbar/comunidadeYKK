@@ -1162,6 +1162,10 @@ function renderMediaCard(anime, showOverlay = true) {
             
             const categories = getItemCategories(anime);
             contentArea.innerHTML = `
+                <button id="backButton" style="margin-bottom: 16px; background: var(--bg-secondary); border: none; color: var(--text-primary); padding: 12px 20px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; transition: all 0.2s;">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                    Voltar
+                </button>
                 <div class="anime-detail">
                     <div class="anime-poster"><img src="${anime.imageUrl}" alt="${escapeHtml(anime.title)}"></div>
                     <div class="anime-info">
@@ -1187,6 +1191,16 @@ function renderMediaCard(anime, showOverlay = true) {
                     </div>
                 </div>
                 ${seasonsHtml}`;
+            
+            // Add back button listener
+            document.getElementById('backButton')?.addEventListener('click', () => {
+                if (currentTab === 'home') {
+                    loadHomeTab();
+                } else {
+                    loadCatalogTab();
+                }
+            });
+            
             attachEpisodeListeners();
             attachSeasonListeners();
             loadUserRating(anime.id);
