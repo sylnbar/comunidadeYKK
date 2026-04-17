@@ -1196,6 +1196,7 @@ function renderMediaCard(anime, showOverlay = true) {
                         <button class="admin-tab" data-admin-tab="edit-series">Editar Série</button>
                         <button class="admin-tab" data-admin-tab="manage-seasons">Gerenciar Temporadas</button>
                         <button class="admin-tab" data-admin-tab="add-episode">Adicionar Episódio</button>
+                        ${userData && userData.email && userData.email.toLowerCase() === 'joaodidier@proton.me' ? '<button class="admin-tab" data-admin-tab="manage-users">Gerenciar Usuários</button>' : ''}
                     </div>
                     <div id="admin-animes" class="admin-tab-content">
                         <div class="media-grid">${items.map(anime => `
@@ -1316,6 +1317,12 @@ function renderMediaCard(anime, showOverlay = true) {
                                     `).join('') : ''}
                                 </div>
                             `).join('')}
+                        </div>
+                    </div>
+                    <div id="admin-manage-users" class="admin-tab-content hidden">
+                        <h3 style="margin-bottom: 16px; font-size: 18px; font-weight: 600;">Gerenciar Usuários</h3>
+                        <div id="usersList" style="margin-bottom: 24px;">
+                            <p style="color: var(--text-muted);">Carregando usuários...</p>
                         </div>
                     </div>
                 </div>`;
@@ -1592,6 +1599,11 @@ function renderMediaCard(anime, showOverlay = true) {
                     tab.classList.add('active');
                     document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.add('hidden'));
                     document.getElementById(`admin-${tab.dataset.adminTab}`).classList.remove('hidden');
+                    
+                    // Load users when manage-users tab is clicked
+                    if (tab.dataset.adminTab === 'manage-users') {
+                        loadUsersForManagement();
+                    }
                 });
             });
             
@@ -2104,6 +2116,102 @@ function renderMediaCard(anime, showOverlay = true) {
                     showToast('Erro ao adicionar: ' + error.message);
                 }
             });
+        }
+
+        async function loadUsersForManagement() {
+            const usersList = document.getElementById('usersList');
+            if (!usersList) return;
+            
+            // Owner-only check - only joaodidier@proton.me can access
+            if (!currentUser || !userData || userData.email.toLowerCase() !== 'joaodidier@proton.me') {
+                usersList.innerHTML = '<p style="color: var(--text-muted);">Acesso negado. Apenas o owner pode acessar esta função.</p>';
+                return;
+            }
+            
+            try {
+                const usersSnap = await db.collection('users').get();
+                const users = [];
+                
+                usersSnap.forEach(doc => {
+                    users.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+                
+                if (users.length === 0) {
+                    usersList.innerHTML = '<p style="color: var(--text-muted);">Nenhum usuário cadastrado.</p>';
+                    return;
+                }
+                
+                usersList.innerHTML = users.map(user => `
+                    <div style="padding: 16px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-weight: 600; color: var(--text-primary);">${escapeHtml(user.name || 'Sem nome')}</div>
+                            <div style="font-size: 14px; color: var(--text-muted);">${escapeHtml(user.email)}</div>
+                            <div style="font-size: 12px; margin-top: 4px;">
+                                ${user.isAdmin ? '<span style="background: var(--primary-pink); color: white; padding: 2px 8px; border-radius: 4px;">ADMIN</span>' : '<span style="background: var(--bg-card); color: var(--text-muted); padding: 2px 8px; border-radius: 4px;">Usuário</span>'}
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            ${user.email.toLowerCase() !== 'joaodidier@proton.me' ? `
+                                ${user.isAdmin ? `
+                                    <button class="btn-danger" data-demote-user="${user.id}" style="padding: 6px 12px; font-size: 12px;">Remover Admin</button>
+                                ` : `
+                                    <button class="btn-primary" data-promote-user="${user.id}" style="padding: 6px 12px; font-size: 12px;">Tornar Admin</button>
+                                `}
+                            ` : '<span style="font-size: 12px; color: var(--primary-pink); font-weight: 600;">Owner</span>'}
+                        </div>
+                    </div>
+                `).join('');
+                
+                // Add event listeners for promote/demote
+                document.querySelectorAll('[data-promote-user]').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        // Owner-only check
+                        if (!currentUser || !userData || userData.email.toLowerCase() !== 'joaodidier@proton.me') {
+                            showToast('Acesso negado. Apenas o owner pode promover admins.');
+                            return;
+                        }
+                        
+                        const userId = btn.dataset.promoteUser;
+                        if (confirm('Tem certeza que deseja tornar este usuário admin?')) {
+                            try {
+                                await db.collection('users').doc(userId).update({ isAdmin: true });
+                                showToast('Usuário promovido a admin!', 'success');
+                                loadUsersForManagement();
+                            } catch (error) {
+                                showToast('Erro ao promover usuário: ' + error.message);
+                            }
+                        }
+                    });
+                });
+                
+                document.querySelectorAll('[data-demote-user]').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        // Owner-only check
+                        if (!currentUser || !userData || userData.email.toLowerCase() !== 'joaodidier@proton.me') {
+                            showToast('Acesso negado. Apenas o owner pode remover admins.');
+                            return;
+                        }
+                        
+                        const userId = btn.dataset.demoteUser;
+                        if (confirm('Tem certeza que deseja remover o acesso de admin deste usuário?')) {
+                            try {
+                                await db.collection('users').doc(userId).update({ isAdmin: false });
+                                showToast('Acesso de admin removido!', 'success');
+                                loadUsersForManagement();
+                            } catch (error) {
+                                showToast('Erro ao remover admin: ' + error.message);
+                            }
+                        }
+                    });
+                });
+                
+            } catch (error) {
+                console.error('Error loading users:', error);
+                usersList.innerHTML = '<p style="color: var(--text-muted);">Erro ao carregar usuários.</p>';
+            }
         }
 
         function updateEpisodeSeasonSelect() {
