@@ -2951,12 +2951,11 @@
                     const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                     // Send email verification
                     await userCredential.user.sendEmailVerification();
-                    // Auto-admin for owner (only after email verification)
-                    const isAdmin = email.toLowerCase() === OWNER_EMAIL.toLowerCase();
+                    // No auto-admin - all users start as regular users
                     await db.collection('users').doc(userCredential.user.uid).set({
                         name,
                         email,
-                        isAdmin: false, // Start as false, admin granted after verification
+                        isAdmin: false,
                         emailVerified: false,
                         createdAt: new Date()
                     });
