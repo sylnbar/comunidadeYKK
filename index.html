@@ -1069,7 +1069,9 @@ function renderMediaCard(anime, showOverlay = true) {
 
         async function loadCatalogTab() {
             const contentArea = document.getElementById('contentArea');
-            const items = await loadAllContent();
+            
+            // Use cached items if available, otherwise load
+            const items = allContentCache.length > 0 ? allContentCache : await loadAllContent();
             const filteredItems = filterContent(items);
             
             const allGenres = ['Todos', ...new Set(items.flatMap(item => getItemCategories(item)))];
@@ -1477,7 +1479,7 @@ function renderMediaCard(anime, showOverlay = true) {
                     document.querySelectorAll('.catalog-tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
                     currentCatalogTab = tab.dataset.catalogTab;
-                    loadCatalogTab();
+                    renderCatalogContent();
                 });
             });
             document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -1485,9 +1487,28 @@ function renderMediaCard(anime, showOverlay = true) {
                     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
                     currentGenre = btn.dataset.genre;
-                    loadCatalogTab();
+                    renderCatalogContent();
                 });
             });
+        }
+
+        async function renderCatalogContent() {
+            const contentArea = document.getElementById('contentArea');
+            const items = allContentCache.length > 0 ? allContentCache : await loadAllContent();
+            const filteredItems = filterContent(items);
+            
+            const grid = contentArea.querySelector('.media-grid');
+            const emptyState = contentArea.querySelector('.empty-state');
+            
+            if (grid) grid.remove();
+            if (emptyState) emptyState.remove();
+            
+            if (filteredItems.length === 0) {
+                contentArea.insertAdjacentHTML('beforeend', '<div class="empty-state"><h3>Nenhum conteúdo encontrado</h3><p>Tente ajustar os filtros ou o termo de busca.</p></div>');
+            } else {
+                contentArea.insertAdjacentHTML('beforeend', `<div class="media-grid">${filteredItems.map(anime => renderMediaCard(anime)).join('')}</div>`);
+                attachMediaCardListeners();
+            }
         }
 
         function attachEpisodeListeners() {
