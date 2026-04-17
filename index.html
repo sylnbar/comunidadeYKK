@@ -1448,6 +1448,8 @@
                 </div>
                 ${seasonsHtml}`;
             
+            contentArea.innerHTML = html;
+            
             // Add back button listener
             document.getElementById('backButton')?.addEventListener('click', () => {
                 if (currentTab === 'home') {
