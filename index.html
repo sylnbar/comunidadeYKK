@@ -1190,6 +1190,9 @@
                                 <button class="admin-tab" data-admin-tab="series">Séries</button>
                                 <button class="admin-tab" data-admin-tab="add-anime">Adicionar Filme</button>
                                 <button class="admin-tab" data-admin-tab="add-series">Adicionar Série</button>
+                                <button class="admin-tab" data-admin-tab="edit-anime" style="display: none;">Editar Filme</button>
+                                <button class="admin-tab" data-admin-tab="edit-series" style="display: none;">Editar Série</button>
+                                <button class="admin-tab" data-admin-tab="manage-episodes" style="display: none;">Gerenciar Episódios</button>
                             </div>
                             
                             <!-- Animes Tab -->
@@ -1315,12 +1318,110 @@
                                     <button type="submit" class="btn-primary">Adicionar Série</button>
                                 </form>
                             </div>
+                            
+                            <!-- Edit Anime Tab -->
+                            <div id="admin-edit-anime" class="admin-tab-content hidden">
+                                <h3 style="margin-bottom: 16px;">Editar Filme</h3>
+                                <form id="editAnimeForm" class="admin-form">
+                                    <input type="hidden" id="editAnimeId">
+                                    <div class="form-group">
+                                        <label class="form-label">Título</label>
+                                        <input type="text" class="form-input" id="editAnimeTitle" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Descrição</label>
+                                        <textarea class="form-textarea" id="editAnimeDescription" required></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">URL da Imagem</label>
+                                        <input type="url" class="form-input" id="editAnimeImage" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">URL Dublado</label>
+                                        <input type="url" class="form-input" id="editAnimeDubLink">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">URL Legendado</label>
+                                        <input type="url" class="form-input" id="editAnimeLegLink">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Categorias (separadas por vírgula)</label>
+                                        <input type="text" class="form-input" id="editAnimeCategories" placeholder="Ação, Aventura, Comédia">
+                                    </div>
+                                    <button type="submit" class="btn-primary">Salvar Alterações</button>
+                                </form>
+                            </div>
+                            
+                            <!-- Edit Series Tab -->
+                            <div id="admin-edit-series" class="admin-tab-content hidden">
+                                <h3 style="margin-bottom: 16px;">Editar Série</h3>
+                                <form id="editSeriesForm" class="admin-form">
+                                    <input type="hidden" id="editSeriesId">
+                                    <div class="form-group">
+                                        <label class="form-label">Título</label>
+                                        <input type="text" class="form-input" id="editSeriesTitle" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Descrição</label>
+                                        <textarea class="form-textarea" id="editSeriesDescription" required></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">URL da Imagem</label>
+                                        <input type="url" class="form-input" id="editSeriesImage" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Categorias (separadas por vírgula)</label>
+                                        <input type="text" class="form-input" id="editSeriesCategories" placeholder="Ação, Aventura, Comédia">
+                                    </div>
+                                    <button type="submit" class="btn-primary">Salvar Alterações</button>
+                                </form>
+                            </div>
+                            
+                            <!-- Manage Episodes Tab -->
+                            <div id="admin-manage-episodes" class="admin-tab-content hidden">
+                                <h3 style="margin-bottom: 16px;">Gerenciar Episódios e Temporadas</h3>
+                                <div id="episodesManagement">
+                                    <div class="form-group">
+                                        <label class="form-label">Selecionar Série</label>
+                                        <select id="episodeSeriesSelect" class="form-select">
+                                            <option value="">Carregando séries...</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div id="seasonsManagement" style="display: none;">
+                                        <div style="display: flex; gap: 16px; margin-bottom: 20px;">
+                                            <div style="flex: 1;">
+                                                <h4 style="margin-bottom: 12px; color: var(--text-primary);">Adicionar Temporada</h4>
+                                                <form id="addSeasonForm" style="display: flex; gap: 8px;">
+                                                    <input type="text" id="seasonName" class="form-input" placeholder="Nome da temporada" required style="flex: 1;">
+                                                    <button type="submit" class="btn-primary">Adicionar</button>
+                                                </form>
+                                            </div>
+                                            <div style="flex: 1;">
+                                                <h4 style="margin-bottom: 12px; color: var(--text-primary);">Adicionar Episódio</h4>
+                                                <form id="addEpisodeForm" style="display: flex; flex-direction: column; gap: 8px;">
+                                                    <select id="episodeSeasonSelect" class="form-select">
+                                                        <option value="">Selecione uma temporada</option>
+                                                    </select>
+                                                    <input type="text" id="episodeName" class="form-input" placeholder="Nome do episódio" required>
+                                                    <input type="url" id="episodeDubLink" class="form-input" placeholder="URL Dublado">
+                                                    <input type="url" id="episodeLegLink" class="form-input" placeholder="URL Legendado">
+                                                    <button type="submit" class="btn-primary">Adicionar Episódio</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                        
+                                        <div id="seasonsList"></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 `;
                 
                 contentArea.innerHTML = html;
                 attachAdminListeners();
+                loadEpisodesManagement();
                 
             } catch (error) {
                 console.error('Error loading admin tab:', error);
@@ -1427,8 +1528,12 @@
                     
                     if (!item) return;
                     
-                    // For simplicity, just show alert for now
-                    alert(`Editar ${type}: ${item.title}`);
+                    // Show edit form based on type
+                    if (type === 'movies') {
+                        showEditAnimeForm(item);
+                    } else if (type === 'series') {
+                        showEditSeriesForm(item);
+                    }
                 });
             });
             
@@ -1585,6 +1690,238 @@
                     allContentCache = [];
                     showToast('Série adicionada com sucesso!', 'success');
                     loadAdminTab();
+                } catch (error) {
+                    showToast('Erro ao adicionar: ' + error.message);
+                }
+            });
+            
+            // Edit Anime Form
+            document.getElementById('editAnimeForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                // Owner verification
+                if (!isOwner()) {
+                    showToast('Acesso negado');
+                    return;
+                }
+                
+                const id = document.getElementById('editAnimeId').value;
+                const title = sanitizeInput(document.getElementById('editAnimeTitle').value);
+                const description = sanitizeInput(document.getElementById('editAnimeDescription').value);
+                const imageUrl = sanitizeInput(document.getElementById('editAnimeImage').value);
+                const dubLink = sanitizeInput(document.getElementById('editAnimeDubLink').value);
+                const legLink = sanitizeInput(document.getElementById('editAnimeLegLink').value);
+                const categoriesRaw = document.getElementById('editAnimeCategories').value;
+                
+                // Validation
+                if (!validateText(title, 1, 200)) {
+                    showToast('Título inválido');
+                    return;
+                }
+                
+                if (!validateText(description, 10, 2000)) {
+                    showToast('Descrição deve ter entre 10 e 2000 caracteres');
+                    return;
+                }
+                
+                if (!validateUrl(imageUrl)) {
+                    showToast('URL da imagem inválida');
+                    return;
+                }
+                
+                if (dubLink && !validateUrl(dubLink)) {
+                    showToast('URL dublada inválida');
+                    return;
+                }
+                
+                if (legLink && !validateUrl(legLink)) {
+                    showToast('URL legendada inválida');
+                    return;
+                }
+                
+                const categories = categoriesRaw.split(',').map(g => sanitizeInput(g.trim())).filter(g => g.length > 0);
+                
+                if (categories.length === 0) {
+                    showToast('Pelo menos uma categoria é necessária');
+                    return;
+                }
+                
+                const updatedAnime = {
+                    title,
+                    description,
+                    imageUrl,
+                    dubLink,
+                    legLink,
+                    categories
+                };
+                try {
+                    await db.collection('animes').doc(id).update(updatedAnime);
+                    allContentCache = [];
+                    showToast('Filme atualizado com sucesso!', 'success');
+                    loadAdminTab();
+                } catch (error) {
+                    showToast('Erro ao atualizar: ' + error.message);
+                }
+            });
+            
+            // Edit Series Form
+            document.getElementById('editSeriesForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                // Owner verification
+                if (!isOwner()) {
+                    showToast('Acesso negado');
+                    return;
+                }
+                
+                const id = document.getElementById('editSeriesId').value;
+                const title = sanitizeInput(document.getElementById('editSeriesTitle').value);
+                const description = sanitizeInput(document.getElementById('editSeriesDescription').value);
+                const imageUrl = sanitizeInput(document.getElementById('editSeriesImage').value);
+                const categoriesRaw = document.getElementById('editSeriesCategories').value;
+                
+                // Validation
+                if (!validateText(title, 1, 200)) {
+                    showToast('Título inválido');
+                    return;
+                }
+                
+                if (!validateText(description, 10, 2000)) {
+                    showToast('Descrição deve ter entre 10 e 2000 caracteres');
+                    return;
+                }
+                
+                if (!validateUrl(imageUrl)) {
+                    showToast('URL da imagem inválida');
+                    return;
+                }
+                
+                const categories = categoriesRaw.split(',').map(g => sanitizeInput(g.trim())).filter(g => g.length > 0);
+                
+                if (categories.length === 0) {
+                    showToast('Pelo menos uma categoria é necessária');
+                    return;
+                }
+                
+                const updatedSeries = {
+                    title,
+                    description,
+                    imageUrl,
+                    categories
+                };
+                try {
+                    await db.collection('series').doc(id).update(updatedSeries);
+                    allContentCache = [];
+                    showToast('Série atualizada com sucesso!', 'success');
+                    loadAdminTab();
+                } catch (error) {
+                    showToast('Erro ao atualizar: ' + error.message);
+                }
+            });
+            
+            // Episode and Season Management
+            document.getElementById('episodeSeriesSelect')?.addEventListener('change', async (e) => {
+                const seriesId = e.target.value;
+                if (!seriesId) return;
+                
+                try {
+                    const doc = await db.collection('series').doc(seriesId).get();
+                    if (doc.exists) {
+                        const series = doc.data();
+                        displaySeasonsManagement(series);
+                    }
+                } catch (error) {
+                    console.error('Error loading series:', error);
+                }
+            });
+            
+            document.getElementById('addSeasonForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                // Owner verification
+                if (!isOwner()) {
+                    showToast('Acesso negado');
+                    return;
+                }
+                
+                const seriesId = document.getElementById('episodeSeriesSelect').value;
+                const seasonName = sanitizeInput(document.getElementById('seasonName').value);
+                
+                if (!validateText(seasonName, 1, 100)) {
+                    showToast('Nome da temporada inválido');
+                    return;
+                }
+                
+                try {
+                    const doc = await db.collection('series').doc(seriesId).get();
+                    if (doc.exists) {
+                        const data = doc.data();
+                        const seasons = data.seasons || {};
+                        seasons[seasonName] = seasons[seasonName] || [];
+                        await db.collection('series').doc(seriesId).update({ seasons });
+                        allContentCache = [];
+                        showToast('Temporada adicionada com sucesso!', 'success');
+                        // Reload seasons management
+                        const updatedDoc = await db.collection('series').doc(seriesId).get();
+                        displaySeasonsManagement(updatedDoc.data());
+                    }
+                } catch (error) {
+                    showToast('Erro ao adicionar: ' + error.message);
+                }
+            });
+            
+            document.getElementById('addEpisodeForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                // Owner verification
+                if (!isOwner()) {
+                    showToast('Acesso negado');
+                    return;
+                }
+                
+                const seriesId = document.getElementById('episodeSeriesSelect').value;
+                const seasonName = document.getElementById('episodeSeasonSelect').value;
+                const episodeName = sanitizeInput(document.getElementById('episodeName').value);
+                const dubLink = sanitizeInput(document.getElementById('episodeDubLink').value);
+                const legLink = sanitizeInput(document.getElementById('episodeLegLink').value);
+                
+                // Validation
+                if (!validateText(episodeName, 1, 200)) {
+                    showToast('Nome do episódio inválido');
+                    return;
+                }
+                
+                if (!dubLink && !legLink) {
+                    showToast('Pelo menos um link (dublado ou legendado) é necessário');
+                    return;
+                }
+                
+                if (dubLink && !validateUrl(dubLink)) {
+                    showToast('URL dublada inválida');
+                    return;
+                }
+                
+                if (legLink && !validateUrl(legLink)) {
+                    showToast('URL legendada inválida');
+                    return;
+                }
+                
+                try {
+                    const doc = await db.collection('series').doc(seriesId).get();
+                    if (doc.exists) {
+                        const data = doc.data();
+                        const seasons = data.seasons || {};
+                        if (!seasons[seasonName]) {
+                            seasons[seasonName] = [];
+                        }
+                        seasons[seasonName].push({ name: episodeName, dubLink, legLink });
+                        await db.collection('series').doc(seriesId).update({ seasons });
+                        allContentCache = [];
+                        showToast('Episódio adicionado com sucesso!', 'success');
+                        // Reload seasons management
+                        const updatedDoc = await db.collection('series').doc(seriesId).get();
+                        displaySeasonsManagement(updatedDoc.data());
+                    }
                 } catch (error) {
                     showToast('Erro ao adicionar: ' + error.message);
                 }
@@ -1866,6 +2203,176 @@
             showToast('Carregando detalhes...');
         }
 
+        function showEditAnimeForm(anime) {
+            // Switch to edit anime tab
+            document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector('[data-admin-tab="edit-anime"]').classList.add('active');
+            document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.add('hidden'));
+            document.getElementById('admin-edit-anime').classList.remove('hidden');
+            
+            // Populate form with anime data
+            document.getElementById('editAnimeId').value = anime.id;
+            document.getElementById('editAnimeTitle').value = anime.title || '';
+            document.getElementById('editAnimeDescription').value = anime.description || '';
+            document.getElementById('editAnimeImage').value = anime.imageUrl || '';
+            document.getElementById('editAnimeDubLink').value = anime.dubLink || '';
+            document.getElementById('editAnimeLegLink').value = anime.legLink || '';
+            document.getElementById('editAnimeCategories').value = (anime.categories || []).join(', ');
+        }
+        
+        function showEditSeriesForm(series) {
+            // Switch to edit series tab
+            document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector('[data-admin-tab="edit-series"]').classList.add('active');
+            document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.add('hidden'));
+            document.getElementById('admin-edit-series').classList.remove('hidden');
+            
+            // Populate form with series data
+            document.getElementById('editSeriesId').value = series.id;
+            document.getElementById('editSeriesTitle').value = series.title || '';
+            document.getElementById('editSeriesDescription').value = series.description || '';
+            document.getElementById('editSeriesImage').value = series.imageUrl || '';
+            document.getElementById('editSeriesCategories').value = (series.categories || []).join(', ');
+        }
+        
+        async function loadEpisodesManagement() {
+            const select = document.getElementById('episodeSeriesSelect');
+            if (!select) return;
+            
+            try {
+                const items = await loadAllContent();
+                const series = items.filter(item => item.type === 'series');
+                
+                select.innerHTML = '<option value="">Selecione uma série</option>' + 
+                    series.map(s => `<option value="${s.id}">${escapeHtml(s.title)}</option>`).join('');
+                
+                document.getElementById('seasonsManagement').style.display = 'none';
+            } catch (error) {
+                console.error('Error loading series for episode management:', error);
+            }
+        }
+        
+        function displaySeasonsManagement(series) {
+            const seasonsContainer = document.getElementById('seasonsManagement');
+            const seasonsList = document.getElementById('seasonsList');
+            const episodeSeasonSelect = document.getElementById('episodeSeasonSelect');
+            
+            if (!seasonsContainer || !seasonsList) return;
+            
+            seasonsContainer.style.display = 'block';
+            
+            // Populate season select
+            const seasons = series.seasons || {};
+            episodeSeasonSelect.innerHTML = '<option value="">Selecione uma temporada</option>' +
+                Object.keys(seasons).map(seasonName => 
+                    `<option value="${escapeHtml(seasonName)}">${escapeHtml(seasonName)}</option>`
+                ).join('');
+            
+            // Display seasons list
+            let seasonsHtml = '';
+            Object.keys(seasons).forEach(seasonName => {
+                const episodes = seasons[seasonName] || [];
+                seasonsHtml += `
+                    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <h4 style="color: var(--primary-pink); margin: 0;">${escapeHtml(seasonName)}</h4>
+                            <button class="btn-danger" style="padding: 6px 12px; font-size: 12px;" 
+                                    data-delete-season="${series.id}" data-season-name="${escapeHtml(seasonName)}">
+                                Excluir Temporada
+                            </button>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px;">
+                            ${episodes.map((episode, index) => `
+                                <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                        <h5 style="margin: 0; color: var(--text-primary);">${escapeHtml(episode.name)}</h5>
+                                        <button class="btn-danger" style="padding: 4px 8px; font-size: 10px;" 
+                                                data-delete-episode="${series.id}" data-season-name="${escapeHtml(seasonName)}" data-episode-index="${index}">
+                                            Excluir
+                                        </button>
+                                    </div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">
+                                        ${episode.dubLink ? `🔊 Dublado: <a href="${episode.dubLink}" target="_blank" style="color: var(--primary-pink);">Ver</a>` : ''}
+                                        ${episode.legLink ? `📝 Legendado: <a href="${episode.legLink}" target="_blank" style="color: var(--primary-pink);">Ver</a>` : ''}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            seasonsList.innerHTML = seasonsHtml;
+            
+            // Attach delete listeners for episodes and seasons
+            attachEpisodeDeleteListeners();
+        }
+        
+        function attachEpisodeDeleteListeners() {
+            document.querySelectorAll('[data-delete-season]').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    if (!isOwner()) {
+                        showToast('Acesso negado');
+                        return;
+                    }
+                    
+                    const seriesId = btn.dataset.deleteSeason;
+                    const seasonName = btn.dataset.seasonName;
+                    if (confirm(`Tem certeza que deseja excluir a temporada "${seasonName}"?`)) {
+                        try {
+                            const doc = await db.collection('series').doc(seriesId).get();
+                            if (doc.exists) {
+                                const data = doc.data();
+                                const seasons = data.seasons || {};
+                                delete seasons[seasonName];
+                                await db.collection('series').doc(seriesId).update({ seasons });
+                                allContentCache = [];
+                                showToast('Temporada excluída com sucesso!', 'success');
+                                // Reload seasons management
+                                const updatedDoc = await db.collection('series').doc(seriesId).get();
+                                displaySeasonsManagement(updatedDoc.data());
+                            }
+                        } catch (error) {
+                            showToast('Erro ao excluir: ' + error.message);
+                        }
+                    }
+                });
+            });
+            
+            document.querySelectorAll('[data-delete-episode]').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    if (!isOwner()) {
+                        showToast('Acesso negado');
+                        return;
+                    }
+                    
+                    const seriesId = btn.dataset.deleteEpisode;
+                    const seasonName = btn.dataset.seasonName;
+                    const episodeIndex = parseInt(btn.dataset.episodeIndex);
+                    if (confirm('Tem certeza que deseja excluir este episódio?')) {
+                        try {
+                            const doc = await db.collection('series').doc(seriesId).get();
+                            if (doc.exists) {
+                                const data = doc.data();
+                                const seasons = data.seasons || {};
+                                if (seasons[seasonName]) {
+                                    seasons[seasonName].splice(episodeIndex, 1);
+                                    await db.collection('series').doc(seriesId).update({ seasons });
+                                    allContentCache = [];
+                                    showToast('Episódio excluído com sucesso!', 'success');
+                                    // Reload seasons management
+                                    const updatedDoc = await db.collection('series').doc(seriesId).get();
+                                    displaySeasonsManagement(updatedDoc.data());
+                                }
+                            }
+                        } catch (error) {
+                            showToast('Erro ao excluir: ' + error.message);
+                        }
+                    }
+                });
+            });
+        }
+        
         function toggleFavorite(id) {
             // Implementation for toggling favorites
             showToast('Adicionado aos favoritos!');
