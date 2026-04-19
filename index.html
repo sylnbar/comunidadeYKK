@@ -1195,8 +1195,8 @@
 
         .featured-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
         }
 
         .featured-card {
@@ -1204,17 +1204,19 @@
             overflow: hidden;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
-            border-radius: 8px;
-            background: transparent;
+            border-radius: 16px;
+            background: var(--surface-bg);
+            border: 1px solid var(--border-color);
+            height: 580px !important;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
         }
 
         .featured-card:hover {
-            transform: scale(1.05);
-            z-index: 10;
-        }
-
-        .featured-card:hover .featured-thumbnail {
-            filter: brightness(1.1);
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-xl);
+            border-color: var(--border-hover);
         }
 
         .featured-card:hover .featured-overlay {
@@ -1223,45 +1225,44 @@
 
         .featured-thumbnail {
             width: 100%;
-            height: 350px;
+            height: 380px !important;
             object-fit: cover;
-            border-radius: 8px;
-            transition: filter 0.3s ease;
+            flex-shrink: 0;
         }
 
         .featured-overlay {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, transparent 100%);
-            padding: 24px 16px 16px;
-            opacity: 0;
-            transition: opacity 0.3s ease;
+            background: var(--surface-bg);
+            padding: 16px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            opacity: 1;
+            z-index: 2;
         }
 
         .featured-title {
-            font-size: 16px;
-            font-weight: 700;
+            font-size: 18px;
+            font-weight: 800;
             color: var(--text-primary);
             margin-bottom: 8px;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+            line-height: 1.2;
         }
 
         .featured-description {
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.8);
-            margin-bottom: 12px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
             display: -webkit-box;
-            -webkit-line-clamp: 3;
+            -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-            line-height: 1.4;
+            line-height: 1.3;
+            flex: 1;
         }
 
         .featured-meta {
@@ -1274,35 +1275,36 @@
         .featured-rating {
             color: #ff5a8a;
             font-weight: 700;
-            font-size: 14px;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+            font-size: 16px;
             display: flex;
             align-items: center;
             gap: 4px;
         }
 
         .featured-type {
-            background: rgba(255, 90, 138, 0.2);
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 10px;
+            background: var(--input-bg);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
             color: #ff5a8a;
             font-weight: 600;
+            border: 1px solid var(--border-color);
         }
 
         .featured-categories {
             display: flex;
             flex-wrap: wrap;
-            gap: 4px;
+            gap: 6px;
         }
 
         .featured-category {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 9px;
-            color: rgba(255, 255, 255, 0.7);
+            background: var(--input-bg);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            color: var(--text-muted);
             font-weight: 500;
+            border: 1px solid var(--border-color);
         }
 
         /* ======== FILTER STYLES ======== */
@@ -1495,6 +1497,156 @@
             border-color: transparent;
         }
 
+        /* ======== STAR RATING ======== */
+        .star-rating {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .stars-container {
+            display: flex;
+            gap: 4px;
+        }
+
+        .star {
+            font-size: 24px;
+            color: #444;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            transform: scale(1);
+        }
+
+        .star:hover {
+            transform: scale(1.2);
+        }
+
+        .star.filled {
+            color: #ffd700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .star.hover {
+            color: #ffed4e;
+            transform: scale(1.1);
+        }
+
+        .rating-text {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-left: 12px;
+            font-weight: 500;
+        }
+
+        .rating-count {
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-left: 8px;
+        }
+
+        /* ======== MODAL CONTENT ENHANCEMENTS ======== */
+        .modal-media-image {
+            width: 100%;
+            max-height: 400px;
+            object-fit: cover;
+            border-radius: 16px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-title-section {
+            margin-bottom: 20px;
+        }
+
+        .modal-description {
+            color: var(--text-secondary);
+            line-height: 1.7;
+            font-size: 16px;
+            margin-bottom: 24px;
+            padding: 20px;
+            background: var(--input-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-meta-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .modal-categories {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .episode-list {
+            background: var(--input-bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .season-title {
+            color: var(--text-primary);
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .episode-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: var(--card-bg);
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .episode-item:hover {
+            background: var(--surface-bg);
+            transform: translateX(4px);
+        }
+
+        .episode-name {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .episode-links {
+            display: flex;
+            gap: 8px;
+        }
+
+        .episode-link {
+            padding: 6px 12px;
+            background: var(--primary-gradient);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .episode-link:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+        }
+
         /* ======== UTILITIES ======== */
         .hidden {
             display: none !important;
@@ -1576,6 +1728,70 @@
                 <button class="modal-close" onclick="closeModal()">&times;</button>
             </div>
             <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2 class="modal-title">Login / Cadastro</h2>
+                <button class="modal-close" onclick="closeLoginModal()">&times;</button>
+            </div>
+            <div id="loginModalBody">
+                <!-- Login Form -->
+                <div id="loginForm">
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-secondary);">Email</label>
+                        <input type="email" id="loginEmail" class="form-input" placeholder="seu@email.com" style="width: 100%; padding: 12px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary);">
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-secondary);">Senha</label>
+                        <input type="password" id="loginPassword" class="form-input" placeholder="••••••••" style="width: 100%; padding: 12px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary);">
+                    </div>
+                    <button onclick="handleLogin()" style="width: 100%; padding: 14px; background: var(--primary-gradient); color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 16px; cursor: pointer; margin-bottom: 16px;">Entrar</button>
+                    <button onclick="showRegisterForm()" style="width: 100%; padding: 14px; background: transparent; color: var(--text-secondary); border: 1px solid var(--border-color); border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer;">Criar Conta</button>
+                </div>
+
+                <!-- Register Form -->
+                <div id="registerForm" style="display: none;">
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-secondary);">Nome</label>
+                        <input type="text" id="registerName" class="form-input" placeholder="Seu nome" style="width: 100%; padding: 12px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary);">
+                    </div>
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-secondary);">Email</label>
+                        <input type="email" id="registerEmail" class="form-input" placeholder="seu@email.com" style="width: 100%; padding: 12px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary);">
+                    </div>
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-secondary);">Senha</label>
+                        <input type="password" id="registerPassword" class="form-input" placeholder="Mínimo 6 caracteres" style="width: 100%; padding: 12px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary);">
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-secondary);">Confirmar Senha</label>
+                        <input type="password" id="registerConfirmPassword" class="form-input" placeholder="Repita a senha" style="width: 100%; padding: 12px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary);">
+                    </div>
+                    <button onclick="handleRegister()" style="width: 100%; padding: 14px; background: var(--primary-gradient); color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 16px; cursor: pointer; margin-bottom: 16px;">Criar Conta</button>
+                    <button onclick="showLoginForm()" style="width: 100%; padding: 14px; background: transparent; color: var(--text-secondary); border: 1px solid var(--border-color); border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer;">Voltar para Login</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Video Player Overlay -->
+    <div id="videoPlayerOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); z-index: 10000; justify-content: center; align-items: center; flex-direction: column;">
+        <div style="width: 100%; max-width: 1200px; padding: 20px; border: 2px solid rgba(255, 255, 255, 0.2); border-radius: 16px; background: rgba(0, 0, 0, 0.5);">
+            <div style="position: relative; padding-bottom: 56.25%; height: 0;">
+                <iframe id="videoPlayer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" frameborder="0" allowfullscreen></iframe>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+                <button onclick="closeVideoPlayer()" style="padding: 12px 24px; background: var(--primary-gradient); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 16px;">✕ Fechar</button>
+                <div id="episodeNavigation" style="display: none; gap: 12px;">
+                    <button onclick="previousEpisode()" style="padding: 12px 24px; background: var(--input-bg); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">← Anterior</button>
+                    <span id="currentEpisodeIndicator" style="padding: 12px 24px; color: var(--text-primary); font-weight: 600; font-size: 16px;"></span>
+                    <button onclick="nextEpisode()" style="padding: 12px 24px; background: var(--input-bg); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">Próximo →</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1784,50 +2000,173 @@
             });
         }
 
+        // Star Rating Functions
+        function renderStars(content) {
+            const currentRating = content.averageRating || 0;
+            const contentId = content.id;
+            const ratingCount = (content.ratings || []).length;
+            let starsHtml = '<div class="star-rating">';
+            starsHtml += '<div class="stars-container">';
+
+            for (let i = 1; i <= 5; i++) {
+                const filled = i <= Math.round(currentRating) ? 'filled' : '';
+                starsHtml += `<span class="star ${filled}" onclick="rateContent('${contentId}', ${i})" onmouseover="hoverStar('${contentId}', ${i})" onmouseout="unhoverStar('${contentId}')">★</span>`;
+            }
+
+            starsHtml += '</div>';
+            starsHtml += `<span class="rating-text">${currentRating.toFixed(1)}</span>`;
+            starsHtml += `<span class="rating-count">(${ratingCount} avaliações)</span>`;
+            starsHtml += '</div>';
+
+            return starsHtml;
+        }
+
+        function hoverStar(contentId, rating) {
+            const container = document.querySelector(`[data-content-id="${contentId}"] .stars-container`);
+            if (!container) return;
+            
+            const stars = container.querySelectorAll('.star');
+            stars.forEach((star, index) => {
+                if (index < rating) {
+                    star.classList.add('hover');
+                } else {
+                    star.classList.remove('hover');
+                }
+            });
+        }
+
+        function unhoverStar(contentId) {
+            const container = document.querySelector(`[data-content-id="${contentId}"] .stars-container`);
+            if (!container) return;
+            
+            const stars = container.querySelectorAll('.star');
+            stars.forEach(star => {
+                star.classList.remove('hover');
+            });
+        }
+
+        async function rateContent(contentId, rating) {
+            try {
+                const content = allContent.find(item => item.id === contentId);
+                if (!content) return;
+
+                const collection = content.type === 'movie' ? 'animes' : 'series';
+                const docRef = db.collection(collection).doc(contentId);
+                
+                // Get current ratings
+                const doc = await docRef.get();
+                const currentData = doc.data();
+                const ratings = currentData.ratings || [];
+                
+                // Add new rating (in a real app, you'd check if user already rated)
+                ratings.push({
+                    userId: currentUser?.uid || 'anonymous',
+                    rating: rating,
+                    timestamp: new Date().toISOString()
+                });
+                
+                // Calculate new average
+                const averageRating = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
+                
+                // Update in Firebase
+                await docRef.update({
+                    ratings: ratings,
+                    averageRating: averageRating
+                });
+                
+                // Update local data
+                content.ratings = ratings;
+                content.averageRating = averageRating;
+                
+                // Refresh modal
+                openContentModal(content);
+                
+                // Show success message
+                showToast(`Avaliado com ${rating} estrela${rating > 1 ? 's' : ''}!`, 'success');
+                
+            } catch (error) {
+                console.error('Error rating content:', error);
+                showToast('Erro ao avaliar conteúdo', 'error');
+            }
+        }
+
         // Modal Functions
+        function openContentModalById(contentId) {
+            console.log('openContentModalById called with:', contentId);
+            console.log('allContent length:', allContent.length);
+            console.log('allContent IDs:', allContent.map(item => item.id));
+            const content = allContent.find(item => item.id === contentId);
+            if (!content) {
+                console.error('Content not found with ID:', contentId);
+                showToast('Conteúdo não encontrado', 'error');
+                return;
+            }
+            console.log('Found content:', content);
+            openContentModal(content);
+        }
+
         function openContentModal(content) {
+            console.log('openContentModal called with:', content);
+
             const modal = document.getElementById('contentModal');
             const modalTitle = document.getElementById('modalTitle');
             const modalBody = document.getElementById('modalBody');
 
+            if (!modal || !modalTitle || !modalBody) {
+                console.error('Modal elements not found');
+                showToast('Erro ao abrir modal', 'error');
+                return;
+            }
+
             modalTitle.textContent = content.title;
+
+            const ratingStarsHtml = renderStars(content);
 
             if (content.type === 'movie') {
                 modalBody.innerHTML = `
-                    <div style="margin-bottom: 24px;">
-                        <img src="${content.imageUrl}" style="width: 100%; max-height: 400px; object-fit: cover; border-radius: 12px;">
-                    </div>
-                    <h3 style="color: var(--text-primary); margin-bottom: 16px;">${escapeHtml(content.title)}</h3>
-                    <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 20px;">${escapeHtml(content.description)}</p>
-                    <div style="margin-bottom: 24px;">
-                        <span style="color: #ff5a8a; font-weight: 700; font-size: 18px;">⭐ ${content.averageRating ? content.averageRating.toFixed(1) : '0.0'}</span>
-                        <div style="margin-top: 12px;">
-                            ${(content.categories || []).map(cat => `<span class="category-tag">${escapeHtml(cat)}</span>`).join('')}
+                    <div data-content-id="${content.id}">
+                        <img id="modalImage" src="${content.imageUrl}" class="modal-media-image" alt="${escapeHtml(content.title)}">
+                        <div class="modal-title-section">
+                            <h3 style="color: var(--text-primary); font-size: 24px; font-weight: 700;">${escapeHtml(content.title)}</h3>
                         </div>
-                    </div>
-                    <div style="display: flex; gap: 16px;">
-                        ${content.dubLink ? `<a href="${content.dubLink}" target="_blank" class="btn btn-primary">🎬 Assistir Dublado</a>` : ''}
-                        ${content.legLink ? `<a href="${content.legLink}" target="_blank" class="btn btn-primary">📖 Assistir Legendado</a>` : ''}
+                        <div class="modal-description">
+                            ${escapeHtml(content.description || 'Sem descrição disponível.')}
+                        </div>
+                        <div class="modal-meta-section">
+                            ${ratingStarsHtml}
+                            <div class="modal-categories">
+                                ${(content.categories || []).map(cat => `<span class="category-tag">${escapeHtml(cat)}</span>`).join('')}
+                            </div>
+                        </div>
+                        <div class="modal-actions">
+                            ${content.dubLink ? `<button onclick="playVideo('${content.dubLink}', null, null)" class="btn btn-primary"> Assistir Dublado</button>` : ''}
+                            ${content.legLink ? `<button onclick="playVideo('${content.legLink}', null, null)" class="btn btn-primary"> Assistir Legendado</button>` : ''}
+                        </div>
                     </div>
                 `;
             } else if (content.type === 'series') {
                 let episodesHtml = '';
+                let allEpisodes = [];
                 if (content.seasons) {
                     Object.entries(content.seasons).forEach(([seasonName, episodes]) => {
+                        episodes.forEach((episode, index) => {
+                            allEpisodes.push({
+                                name: episode.name,
+                                dubLink: episode.dubLink,
+                                legLink: episode.legLink,
+                                seasonName: seasonName
+                            });
+                        });
                         episodesHtml += `
-                            <div style="margin-bottom: 24px;">
-                                <h4 style="color: #ff5a8a; margin-bottom: 16px; font-size: 20px;">${escapeHtml(seasonName)}</h4>
-                                <div style="display: grid; gap: 12px;">
+                            <div class="episode-list">
+                                <h4 class="season-title">${escapeHtml(seasonName)}</h4>
+                                <div class="episodes-grid">
                                     ${episodes.map((episode, index) => `
-                                        <div style="background: var(--card-bg); padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); cursor: pointer; transition: all var(--transition-fast);" 
-                                             onmouseover="this.style.background='var(--input-bg)'" 
-                                             onmouseout="this.style.background='var(--card-bg)'">
-                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                                                <div style="color: var(--text-primary); font-weight: 600;">${escapeHtml(episode.name)}</div>
-                                            </div>
-                                            <div style="display: flex; gap: 8px;">
-                                                ${episode.dubLink ? `<a href="${episode.dubLink}" target="_blank" class="btn btn-secondary" style="padding: 8px 16px; font-size: 12px;">🎬 Dublado</a>` : ''}
-                                                ${episode.legLink ? `<a href="${episode.legLink}" target="_blank" class="btn btn-secondary" style="padding: 8px 16px; font-size: 12px;">📖 Legendado</a>` : ''}
+                                        <div class="episode-item">
+                                            <div class="episode-name">${escapeHtml(episode.name)}</div>
+                                            <div class="episode-links">
+                                                ${episode.dubLink ? `<button onclick="playVideo('${episode.dubLink}', '${seasonName}', '${escapeHtml(episode.name)}')" class="episode-link"> Dublado</button>` : ''}
+                                                ${episode.legLink ? `<button onclick="playVideo('${episode.legLink}', '${seasonName}', '${escapeHtml(episode.name)}')" class="episode-link"> Legendado</button>` : ''}
                                             </div>
                                         </div>
                                     `).join('')}
@@ -1837,23 +2176,101 @@
                     });
                 }
 
+                // Store episodes globally for navigation
+                window.currentEpisodes = allEpisodes;
+                window.currentEpisodeIndex = 0;
+
                 modalBody.innerHTML = `
-                    <div style="margin-bottom: 24px;">
-                        <img src="${content.imageUrl}" style="width: 100%; max-height: 400px; object-fit: cover; border-radius: 12px;">
-                    </div>
-                    <h3 style="color: var(--text-primary); margin-bottom: 16px;">${escapeHtml(content.title)}</h3>
-                    <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 20px;">${escapeHtml(content.description)}</p>
-                    <div style="margin-bottom: 24px;">
-                        <span style="color: #ff5a8a; font-weight: 700; font-size: 18px;">⭐ ${content.averageRating ? content.averageRating.toFixed(1) : '0.0'}</span>
-                        <div style="margin-top: 12px;">
-                            ${(content.categories || []).map(cat => `<span class="category-tag">${escapeHtml(cat)}</span>`).join('')}
+                    <div data-content-id="${content.id}">
+                        <img id="modalImage" src="${content.imageUrl}" class="modal-media-image" alt="${escapeHtml(content.title)}">
+                        <div class="modal-title-section">
+                            <h3 style="color: var(--text-primary); font-size: 24px; font-weight: 700;">${escapeHtml(content.title)}</h3>
                         </div>
+                        <div class="modal-description">
+                            ${escapeHtml(content.description || 'Sem descrição disponível.')}
+                        </div>
+                        <div class="modal-meta-section">
+                            ${ratingStarsHtml}
+                            <div class="modal-categories">
+                                ${(content.categories || []).map(cat => `<span class="category-tag">${escapeHtml(cat)}</span>`).join('')}
+                            </div>
+                        </div>
+                        ${episodesHtml || '<p style="color: var(--text-secondary);">Nenhum episódio disponível</p>'}
                     </div>
-                    ${episodesHtml}
                 `;
             }
 
             modal.classList.add('active');
+        }
+
+        function playVideo(url, seasonName, episodeName) {
+            console.log('playVideo called with URL:', url);
+            const overlay = document.getElementById('videoPlayerOverlay');
+            const player = document.getElementById('videoPlayer');
+            const episodeNavigation = document.getElementById('episodeNavigation');
+            const currentEpisodeIndicator = document.getElementById('currentEpisodeIndicator');
+
+            console.log('Elements found:', {
+                overlay: !!overlay,
+                player: !!player
+            });
+
+            if (overlay && player) {
+                overlay.style.display = 'flex';
+                player.src = url;
+
+                // Set current episode index if it's a series
+                if (seasonName && episodeName && window.currentEpisodes) {
+                    const index = window.currentEpisodes.findIndex(ep => ep.name === episodeName && ep.seasonName === seasonName);
+                    if (index !== -1) {
+                        window.currentEpisodeIndex = index;
+                        if (episodeNavigation && currentEpisodeIndicator) {
+                            episodeNavigation.style.display = 'flex';
+                            currentEpisodeIndicator.textContent = `${index + 1} / ${window.currentEpisodes.length}`;
+                        }
+                    }
+                }
+
+                console.log('Video player opened');
+            } else {
+                console.error('One or more elements not found');
+            }
+        }
+
+        function closeVideoPlayer() {
+            const overlay = document.getElementById('videoPlayerOverlay');
+            const player = document.getElementById('videoPlayer');
+            const episodeNavigation = document.getElementById('episodeNavigation');
+
+            if (overlay && player) {
+                overlay.style.display = 'none';
+                player.src = '';
+                if (episodeNavigation) {
+                    episodeNavigation.style.display = 'none';
+                }
+            }
+        }
+
+        function nextEpisode() {
+            if (window.currentEpisodes && window.currentEpisodeIndex < window.currentEpisodes.length - 1) {
+                window.currentEpisodeIndex++;
+                const episode = window.currentEpisodes[window.currentEpisodeIndex];
+                const link = episode.dubLink || episode.legLink;
+                if (link) {
+                    playVideo(link, episode.seasonName, episode.name);
+                }
+            }
+        }
+
+        function previousEpisode() {
+            if (window.currentEpisodes && window.currentEpisodeIndex > 0) {
+                window.currentEpisodeIndex--;
+                const episode = window.currentEpisodes[window.currentEpisodeIndex];
+                const link = episode.dubLink || episode.legLink;
+                if (link) {
+                    playVideo(link, episode.seasonName, episode.name);
+                }
+            }
         }
 
         function closeModal() {
@@ -1905,11 +2322,6 @@
                         rgba(255, 90, 138, 0.3) 100%); 
                         animation: gradientShift 8s ease-in-out infinite;"></div>
                     
-                    <!-- Anime Background Pattern -->
-                    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-                        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080"><defs><linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:rgb(255,90,138);stop-opacity:0.1"/><stop offset="100%" style="stop-color:rgb(124,58,237);stop-opacity:0.1"/></linearGradient></defs><rect width="1920" height="1080" fill="url(%23grad)"/><circle cx="300" cy="200" r="150" fill="rgba(255,90,138,0.1)"><animate attributeName="cx" from="300" to="1620" dur="20s" repeatCount="indefinite"/><animate attributeName="cy" from="200" to="880" dur="20s" repeatCount="indefinite"/></circle><circle cx="1620" cy="880" r="200" fill="rgba(124,58,237,0.1)"><animate attributeName="cx" from="1620" to="300" dur="25s" repeatCount="indefinite"/><animate attributeName="cy" from="880" to="200" dur="25s" repeatCount="indefinite"/></circle><circle cx="960" cy="540" r="100" fill="rgba(255,90,138,0.1)"><animate attributeName="r" from="100" to="300" dur="15s" repeatCount="indefinite"/><animate attributeName="opacity" from="0.1" to="0.3" dur="15s" repeatCount="indefinite"/></circle></svg>') center/cover;
-                        opacity: 0.6; animation: float 20s ease-in-out infinite;"></div>
-                    
                     <!-- Dark Overlay -->
                     <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
                         background: linear-gradient(to right, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.8) 100%);"></div>
@@ -1924,18 +2336,11 @@
                                     <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                                     Assistir Agora
                                 </button>
-                                <button onclick="switchTab('admin')" style="background: rgba(255,255,255,0.1); color: white; padding: 16px 32px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; font-size: 18px; font-weight: 700; cursor: pointer; transition: all 0.3s ease; backdrop-filter: blur(10px);">
+                                <button onclick="window.open('https://discord.gg/yvdNkcG8jy', '_blank')" style="background: rgba(255,255,255,0.1); color: white; padding: 16px 32px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; font-size: 18px; font-weight: 700; cursor: pointer; transition: all 0.3s ease; backdrop-filter: blur(10px);">
                                     Mais Informações
                                 </button>
                             </div>
                         </div>
-                    </div>
-                    
-                    <!-- Floating Elements -->
-                    <div style="position: absolute; top: 20px; right: 20px; display: flex; gap: 12px;">
-                        <div style="width: 12px; height: 12px; background: #ff5a8a; border-radius: 50%; animation: pulse 2s ease-in-out infinite;"></div>
-                        <div style="width: 12px; height: 12px; background: #7c3aed; border-radius: 50%; animation: pulse 2s ease-in-out infinite 0.5s;"></div>
-                        <div style="width: 12px; height: 12px; background: #ec4899; border-radius: 50%; animation: pulse 2s ease-in-out infinite 1s;"></div>
                     </div>
                 </div>
 
@@ -1949,7 +2354,7 @@
                     <div class="carousel-container">
                         <div class="carousel-track">
                             ${allContent.filter(item => favorites.includes(item.id) || watchlist.includes(item.id)).slice(0, 12).map(item => `
-                                <div class="carousel-item" onclick="openContentModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">
+                                <div class="carousel-item" onclick="openContentModalById('${item.id}')">
                                     <div class="featured-card">
                                         <img src="${item.imageUrl || 'https://via.placeholder.com/200x300'}" alt="${escapeHtml(item.title)}" class="featured-thumbnail">
                                         <div class="featured-overlay">
@@ -1984,7 +2389,7 @@
                     <div class="carousel-container">
                         <div class="carousel-track">
                             ${recentContent.map(item => `
-                                <div class="carousel-item" onclick="openContentModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">
+                                <div class="carousel-item" onclick="openContentModalById('${item.id}')">
                                     <div class="featured-card">
                                         <img src="${item.imageUrl || 'https://via.placeholder.com/200x300'}" alt="${escapeHtml(item.title)}" class="featured-thumbnail">
                                         <div class="featured-overlay">
@@ -2018,7 +2423,7 @@
                     <div class="carousel-container">
                         <div class="carousel-track">
                             ${topRated.map(item => `
-                                <div class="carousel-item" onclick="openContentModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">
+                                <div class="carousel-item" onclick="openContentModalById('${item.id}')">
                                     <div class="featured-card">
                                         <img src="${item.imageUrl || 'https://via.placeholder.com/200x300'}" alt="${escapeHtml(item.title)}" class="featured-thumbnail">
                                         <div class="featured-overlay">
@@ -2053,7 +2458,7 @@
                     <div class="carousel-container">
                         <div class="carousel-track">
                             ${movies.slice(0, 12).map(item => `
-                                <div class="carousel-item" onclick="openContentModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">
+                                <div class="carousel-item" onclick="openContentModalById('${item.id}')">
                                     <div class="featured-card">
                                         <img src="${item.imageUrl || 'https://via.placeholder.com/200x300'}" alt="${escapeHtml(item.title)}" class="featured-thumbnail">
                                         <div class="featured-overlay">
@@ -2089,7 +2494,7 @@
                     <div class="carousel-container">
                         <div class="carousel-track">
                             ${series.slice(0, 12).map(item => `
-                                <div class="carousel-item" onclick="openContentModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">
+                                <div class="carousel-item" onclick="openContentModalById('${item.id}')">
                                     <div class="featured-card">
                                         <img src="${item.imageUrl || 'https://via.placeholder.com/200x300'}" alt="${escapeHtml(item.title)}" class="featured-thumbnail">
                                         <div class="featured-overlay">
@@ -2138,7 +2543,7 @@
         // Catalog Page with Genre Filters
         function renderCatalogPage() {
             const contentArea = document.getElementById('contentArea');
-            
+
             // Get all unique genres
             const allGenres = new Set();
             allContent.forEach(item => {
@@ -2147,16 +2552,16 @@
                 }
             });
             const genreList = Array.from(allGenres).sort();
-            
+
             const html = `
                 <div style="padding: 40px 0;">
                     <h1 style="font-size: 48px; font-weight: 900; color: var(--text-primary); margin-bottom: 32px; text-align: center;">Catálogo Completo</h1>
-                    
+
                     <!-- Search Bar -->
                     <div class="search-container" style="margin-bottom: 40px;">
                         <input type="text" class="search-input" placeholder="Buscar animes, séries, gêneros..." oninput="filterCatalogContent(this.value)">
                     </div>
-                    
+
                     <!-- Genre Filters -->
                     <div style="margin-bottom: 40px;">
                         <h3 style="color: var(--text-secondary); font-size: 18px; font-weight: 600; margin-bottom: 20px;">Filtrar por Gênero</h3>
@@ -2169,14 +2574,14 @@
                             `).join('')}
                         </div>
                     </div>
-                    
+
                     <!-- Content Grid -->
-                    <div id="catalogContent" class="content-grid">
+                    <div id="catalogContent" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px;">
                         <!-- Content will be rendered here -->
                     </div>
                 </div>
             `;
-            
+
             contentArea.innerHTML = html;
             renderCatalogContent();
         }
@@ -2199,7 +2604,10 @@
             // Update active button
             document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
-            
+
+            console.log('Filter clicked:', filter);
+            console.log('allContent length:', allContent.length);
+
             if (filter === 'all') {
                 filteredContent = [...allContent];
             } else if (filter === 'movie') {
@@ -2207,16 +2615,18 @@
             } else if (filter === 'series') {
                 filteredContent = allContent.filter(item => item.type === 'series');
             } else {
-                filteredContent = allContent.filter(item => 
+                filteredContent = allContent.filter(item =>
                     item.categories && item.categories.includes(filter)
                 );
             }
+
+            console.log('filteredContent length:', filteredContent.length);
             renderCatalogContent();
         }
 
         function renderCatalogContent() {
             const container = document.getElementById('catalogContent');
-            
+
             if (filteredContent.length === 0) {
                 container.innerHTML = `
                     <div style="text-align: center; padding: 80px 20px; grid-column: 1 / -1;">
@@ -2228,32 +2638,23 @@
             }
 
             const contentHtml = filteredContent.map(item => `
-                <div class="media-card" onclick="openContentModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">
-                    <img src="${item.imageUrl || 'https://via.placeholder.com/280x400'}" 
-                         alt="${escapeHtml(item.title)}" class="media-thumbnail">
-                    <div class="media-content">
-                        <h3 class="media-title">${escapeHtml(item.title)}</h3>
-                        <div class="media-meta">
-                            <span class="media-rating">(${item.averageRating ? item.averageRating.toFixed(1) : '0.0'})</span>
-                            <span class="media-type">${item.type === 'movie' ? 'Filme' : 'Série'}</span>
+                <div class="featured-card" onclick="openContentModalById('${item.id}')">
+                    <img src="${item.imageUrl || 'https://via.placeholder.com/200x300'}" alt="${escapeHtml(item.title)}" class="featured-thumbnail">
+                    <div class="featured-overlay">
+                        <h3 class="featured-title">${escapeHtml(item.title)}</h3>
+                        <p class="featured-description">${escapeHtml(item.description || '')}</p>
+                        <div class="featured-meta">
+                            <span class="featured-rating">⭐ ${item.averageRating ? item.averageRating.toFixed(1) : '0.0'}</span>
+                            <span class="featured-type">${item.type === 'movie' ? 'Filme' : 'Série'}</span>
                         </div>
-                        <div class="media-categories">
-                            ${(item.categories || []).map(cat => `<span class="category-tag">${escapeHtml(cat)}</span>`).join('')}
-                        </div>
-                        <div class="media-actions">
-                            <button class="btn btn-primary" onclick="event.stopPropagation(); openContentModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">
-                                ${item.type === 'movie' ? 'Assistir' : 'Episódios'}
-                            </button>
-                            <button class="btn btn-secondary btn-favorite" data-content-id="${item.id}" onclick="event.stopPropagation(); toggleFavorite('${item.id}')">
-                                ${favorites.includes(item.id) ? 'Favorito' : 'Favoritar'}
-                            </button>
+                        <div class="featured-categories">
+                            ${(item.categories || []).slice(0, 3).map(cat => `<span class="featured-category">${escapeHtml(cat)}</span>`).join('')}
                         </div>
                     </div>
                 </div>
             `).join('');
 
             container.innerHTML = contentHtml;
-            updateFavoriteButtons();
         }
 
         function searchContent(query) {
@@ -2284,8 +2685,8 @@
             }
 
             const contentHtml = filteredContent.map(item => `
-                <div class="media-card" onclick="openContentModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">
-                    <img src="${item.imageUrl || 'https://via.placeholder.com/280x400'}" 
+                <div class="media-card" onclick="openContentModalById('${item.id}')">
+                    <img src="${item.imageUrl || 'https://via.placeholder.com/280x400'}"
                          alt="${escapeHtml(item.title)}" class="media-thumbnail">
                     <div class="media-content">
                         <h3 class="media-title">${escapeHtml(item.title)}</h3>
@@ -2297,7 +2698,7 @@
                             ${(item.categories || []).map(cat => `<span class="category-tag">${escapeHtml(cat)}</span>`).join('')}
                         </div>
                         <div class="media-actions">
-                            <button class="btn btn-primary" onclick="event.stopPropagation(); openContentModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">
+                            <button class="btn btn-primary" onclick="event.stopPropagation(); openContentModalById('${item.id}')">
                                 ${item.type === 'movie' ? '🎬 Assistir' : '📺 Ver Episódios'}
                             </button>
                             <button class="btn btn-secondary btn-favorite" data-content-id="${item.id}" onclick="event.stopPropagation(); toggleFavorite('${item.id}')">
@@ -2806,86 +3207,96 @@
                 
                 const content = doc.data();
                 
-                // Create edit modal
-                const modal = document.createElement('div');
-                modal.className = 'modal-overlay';
-                modal.style.display = 'flex';
-                modal.innerHTML = `
-                    <div class="modal-content" style="max-width: 600px; max-height: 80vh; overflow-y: auto;">
-                        <div class="modal-header">
-                            <h2 class="modal-title">Editar ${type === 'movie' ? 'Filme' : 'Série'}</h2>
-                            <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
-                        </div>
-                        <div class="modal-body">
-                            <form id="editForm" class="admin-form">
-                                <div class="form-group">
-                                    <label class="form-label">Título</label>
-                                    <input type="text" class="form-input" id="editTitle" value="${escapeHtml(content.title)}" required>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Descrição</label>
-                                    <textarea class="form-textarea" id="editDescription" required rows="4">${escapeHtml(content.description || '')}</textarea>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">URL da Imagem</label>
-                                    <input type="url" class="form-input" id="editImage" value="${escapeHtml(content.imageUrl)}" required>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Categorias (separadas por vírgula)</label>
-                                    <input type="text" class="form-input" id="editCategories" value="${escapeHtml((content.categories || []).join(', '))}" required>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Avaliação (0-5)</label>
-                                    <input type="number" class="form-input" id="editRating" min="0" max="5" step="0.1" value="${content.averageRating || 0}">
-                                </div>
-                                ${type === 'movie' ? `
+                // Create edit modal HTML
+                const modalHTML = `
+                    <div id="editModal" class="modal-overlay active">
+                        <div class="modal-content" style="max-width: 600px; max-height: 80vh; overflow-y: auto;">
+                            <div class="modal-header">
+                                <h2 class="modal-title">Editar ${type === 'movie' ? 'Filme' : 'Série'}</h2>
+                                <button class="modal-close" onclick="closeEditModal()">&times;</button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="editForm" class="admin-form" onsubmit="saveEdit(event, '${id}', '${type}')">
                                     <div class="form-group">
-                                        <label class="form-label">URL Dublado</label>
-                                        <input type="url" class="form-input" id="editDubLink" value="${escapeHtml(content.dubLink || '')}" placeholder="https://exemplo.com/video-dublado.mp4">
+                                        <label class="form-label">Título</label>
+                                        <input type="text" class="form-input" id="editTitle" value="${escapeHtml(content.title)}" required>
                                     </div>
                                     <div class="form-group">
-                                        <label class="form-label">URL Legendado</label>
-                                        <input type="url" class="form-input" id="editLegLink" value="${escapeHtml(content.legLink || '')}" placeholder="https://exemplo.com/video-legendado.mp4">
+                                        <label class="form-label">Descrição</label>
+                                        <textarea class="form-textarea" id="editDescription" required rows="4">${escapeHtml(content.description || '')}</textarea>
                                     </div>
-                                ` : ''}
-                                <div style="display: flex; gap: 12px;">
-                                    <button type="submit" class="btn btn-primary" style="flex: 1;">💾 Salvar Alterações</button>
-                                    <button type="button" class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancelar</button>
-                                </div>
-                            </form>
+                                    <div class="form-group">
+                                        <label class="form-label">URL da Imagem</label>
+                                        <input type="url" class="form-input" id="editImage" value="${escapeHtml(content.imageUrl)}" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Categorias (separadas por vírgula)</label>
+                                        <input type="text" class="form-input" id="editCategories" value="${escapeHtml((content.categories || []).join(', '))}" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Avaliação (0-5)</label>
+                                        <input type="number" class="form-input" id="editRating" min="0" max="5" step="0.1" value="${content.averageRating || 0}">
+                                    </div>
+                                    ${type === 'movie' ? `
+                                        <div class="form-group">
+                                            <label class="form-label">URL Dublado</label>
+                                            <input type="url" class="form-input" id="editDubLink" value="${escapeHtml(content.dubLink || '')}" placeholder="https://exemplo.com/video-dublado.mp4">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">URL Legendado</label>
+                                            <input type="url" class="form-input" id="editLegLink" value="${escapeHtml(content.legLink || '')}" placeholder="https://exemplo.com/video-legendado.mp4">
+                                        </div>
+                                    ` : ''}
+                                    <div style="display: flex; gap: 12px;">
+                                        <button type="submit" class="btn btn-primary" style="flex: 1;">💾 Salvar Alterações</button>
+                                        <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancelar</button>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 `;
                 
-                document.body.appendChild(modal);
+                // Add modal to body
+                document.body.insertAdjacentHTML('beforeend', modalHTML);
                 
-                // Handle form submission
-                const form = document.getElementById('editForm');
-                if (form) {
-                    form.addEventListener('submit', async (e) => {
-                        e.preventDefault();
-                        
-                        const updatedData = {
-                            title: document.getElementById('editTitle').value,
-                            description: document.getElementById('editDescription').value,
-                            imageUrl: document.getElementById('editImage').value,
-                            categories: document.getElementById('editCategories').value.split(',').map(c => c.trim()),
-                            averageRating: parseFloat(document.getElementById('editRating').value) || 0
-                        };
-                        
-                        if (type === 'movie') {
-                            updatedData.dubLink = document.getElementById('editDubLink').value;
-                            updatedData.legLink = document.getElementById('editLegLink').value;
-                        }
-                        
-                        await db.collection(collection).doc(id).update(updatedData);
-                        showToast('Conteúdo atualizado com sucesso!', 'success');
-                        modal.remove();
-                        loadAdminTab();
-                    });
-                }    
             } catch (error) {
                 showToast('Erro ao carregar conteúdo para edição: ' + error.message, 'error');
+            }
+        }
+
+        function closeEditModal() {
+            const modal = document.getElementById('editModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        async function saveEdit(event, id, type) {
+            event.preventDefault();
+            
+            const collection = type === 'movie' ? 'animes' : 'series';
+            
+            const updatedData = {
+                title: document.getElementById('editTitle').value,
+                description: document.getElementById('editDescription').value,
+                imageUrl: document.getElementById('editImage').value,
+                categories: document.getElementById('editCategories').value.split(',').map(c => c.trim()),
+                averageRating: parseFloat(document.getElementById('editRating').value) || 0
+            };
+            
+            if (type === 'movie') {
+                updatedData.dubLink = document.getElementById('editDubLink').value;
+                updatedData.legLink = document.getElementById('editLegLink').value;
+            }
+            
+            try {
+                await db.collection(collection).doc(id).update(updatedData);
+                showToast('Conteúdo atualizado com sucesso!', 'success');
+                closeEditModal();
+                loadAdminTab();
+            } catch (error) {
+                showToast('Erro ao atualizar conteúdo: ' + error.message, 'error');
             }
         }
 
@@ -2911,7 +3322,17 @@
         function updateAuthUI() {
             const userNameDisplay = document.getElementById('userNameDisplay');
             const logoutButton = document.getElementById('logoutButton');
-            
+            const adminTab = document.querySelector('[data-tab="admin"]');
+
+            // Hide admin tab for non-owners
+            if (adminTab) {
+                if (!isOwner()) {
+                    adminTab.style.display = 'none';
+                } else {
+                    adminTab.style.display = 'flex';
+                }
+            }
+
             if (currentUser) {
                 userNameDisplay.textContent = userData?.name || currentUser.email;
                 logoutButton.textContent = 'Sair';
@@ -2923,22 +3344,132 @@
                 userNameDisplay.textContent = 'Visitante';
                 logoutButton.textContent = 'Login';
                 logoutButton.onclick = () => {
-                    showToast('Sistema de login em desenvolvimento...', 'info');
+                    showLoginModal();
                 };
+            }
+        }
+
+        // Login Modal Functions
+        function showLoginModal() {
+            const modal = document.getElementById('loginModal');
+            if (modal) {
+                modal.classList.add('active');
+                showLoginForm();
+            }
+        }
+
+        function closeLoginModal() {
+            const modal = document.getElementById('loginModal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        }
+
+        function showLoginForm() {
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('registerForm').style.display = 'none';
+        }
+
+        function showRegisterForm() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'block';
+        }
+
+        async function handleLogin() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            if (!email || !password) {
+                showToast('Por favor, preencha todos os campos', 'error');
+                return;
+            }
+
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+                showToast('Login realizado com sucesso!', 'success');
+                closeLoginModal();
+            } catch (error) {
+                console.error('Login error:', error);
+                if (error.code === 'auth/user-not-found') {
+                    showToast('Usuário não encontrado', 'error');
+                } else if (error.code === 'auth/wrong-password') {
+                    showToast('Senha incorreta', 'error');
+                } else {
+                    showToast('Erro ao fazer login: ' + error.message, 'error');
+                }
+            }
+        }
+
+        async function handleRegister() {
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('registerConfirmPassword').value;
+
+            if (!name || !email || !password || !confirmPassword) {
+                showToast('Por favor, preencha todos os campos', 'error');
+                return;
+            }
+
+            if (password.length < 6) {
+                showToast('A senha deve ter no mínimo 6 caracteres', 'error');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                showToast('As senhas não coincidem', 'error');
+                return;
+            }
+
+            try {
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                
+                // Send email verification
+                await userCredential.user.sendEmailVerification();
+                
+                // Update user profile with name
+                await userCredential.user.updateProfile({ displayName: name });
+                
+                showToast('Conta criada com sucesso! Verifique seu email.', 'success');
+                closeLoginModal();
+            } catch (error) {
+                console.error('Registration error:', error);
+                if (error.code === 'auth/email-already-in-use') {
+                    showToast('Este email já está em uso', 'error');
+                } else if (error.code === 'auth/weak-password') {
+                    showToast('A senha é muito fraca', 'error');
+                } else {
+                    showToast('Erro ao criar conta: ' + error.message, 'error');
+                }
             }
         }
 
         // Initialize App
         async function initializeApp() {
             try {
-                // Auto-login as owner for demo
-                currentUser = { email: OWNER_EMAIL };
-                userData = { name: 'Admin', email: OWNER_EMAIL };
-                
+                // Setup navigation
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const tabName = item.dataset.tab;
+                        switchTab(tabName);
+                    });
+                });
+
+                // Modal close on overlay click
+                const modal = document.getElementById('contentModal');
+                if (modal) {
+                    modal.addEventListener('click', (e) => {
+                        if (e.target.id === 'contentModal') {
+                            closeModal();
+                        }
+                    });
+                }
+
+
                 updateAuthUI();
                 loadUserPreferences();
                 loadHomeTab();
-                
+
             } catch (error) {
                 console.error('Error initializing app:', error);
                 showToast('Erro ao inicializar aplicação', 'error');
@@ -2948,21 +3479,6 @@
 
         // Event Listeners
         document.addEventListener('DOMContentLoaded', () => {
-            // Setup navigation
-            document.querySelectorAll('.nav-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const tabName = item.dataset.tab;
-                    switchTab(tabName);
-                });
-            });
-
-            // Modal close on overlay click
-            document.getElementById('contentModal').addEventListener('click', (e) => {
-                if (e.target.id === 'contentModal') {
-                    closeModal();
-                }
-            });
-
             // Initialize app
             setTimeout(() => {
                 initializeApp();
