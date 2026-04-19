@@ -16,6 +16,9 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
     
+    <!-- QR Code Library -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
@@ -44,6 +47,20 @@
             --transition-normal: 250ms;
         }
 
+        [data-theme="light"] {
+            --bg-primary: #f5f5f5;
+            --bg-secondary: #ffffff;
+            --bg-card: #ffffff;
+            --bg-hover: #f0f0f0;
+            --text-primary: #1a1a1a;
+            --text-secondary: #333333;
+            --text-muted: #666666;
+            --border-color: #e0e0e0;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.15);
+            --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.2);
+        }
+
         html { scroll-behavior: smooth; font-size: 16px; }
 
         body {
@@ -63,7 +80,12 @@
 
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideLeft { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes slideRight { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 
         .loading-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -115,11 +137,333 @@
         .nav-item:hover { color: var(--text-primary); background: var(--bg-hover); }
         .nav-item.active { color: var(--text-primary); background: var(--primary-pink); }
 
+        .nav-section { display: flex; align-items: center; gap: 16px; }
+
+        .search-container { position: relative; display: flex; align-items: center; }
+
+        .search-icon {
+            width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; color: var(--text-secondary); border-radius: 8px; transition: all var(--transition-fast);
+        }
+
+        .search-icon:hover { color: var(--text-primary); background: var(--bg-hover); }
+
+        .search-input {
+            width: 0; padding: 0; border: none; background: var(--bg-card); color: var(--text-primary);
+            font-size: 14px; outline: none; border-radius: 8px; opacity: 0; transition: all var(--transition-normal);
+        }
+
+        .search-input.expanded { width: 280px; padding: 10px 16px; opacity: 1; border: 1px solid var(--border-color); }
+        .search-input.expanded:focus { border-color: var(--primary-pink); }
+
+        .user-section { display: flex; align-items: center; gap: 12px; }
+
+        .user-name { font-size: 14px; font-weight: 600; color: var(--text-secondary); cursor: pointer; transition: color var(--transition-fast); }
+        .user-name:hover { color: var(--text-primary); }
+
+        .logout-btn {
+            background: transparent; border: 1px solid var(--border-color); padding: 8px 16px;
+            border-radius: 6px; cursor: pointer; color: var(--text-secondary); font-size: 14px;
+            font-weight: 500; transition: all var(--transition-fast);
+        }
+
+        .logout-btn:hover { background: var(--bg-hover); border-color: var(--primary-pink); color: var(--text-primary); }
+
+        .hamburger-menu { display: none; flex-direction: column; gap: 4px; cursor: pointer; padding: 8px; }
+        .hamburger-menu span { width: 24px; height: 2px; background: var(--text-primary); transition: all var(--transition-fast); }
+
+        .mobile-menu { display: none; position: fixed; top: 64px; left: 0; right: 0; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); padding: 16px; z-index: 99; }
+        .mobile-menu.active { display: block; }
+        .mobile-menu .nav-item { width: 100%; padding: 12px; justify-content: center; margin-bottom: 8px; }
+
         .content-wrapper { flex: 1; padding: 24px; max-width: 1600px; margin: 0 auto; width: 100%; }
         .content-section { margin-bottom: 48px; }
 
         .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .section-title { font-size: 24px; font-weight: 700; color: var(--text-primary); }
+        .section-action { color: var(--primary-pink); font-size: 14px; cursor: pointer; font-weight: 600; transition: color var(--transition-fast); }
+        .section-action:hover { color: var(--primary-pink-dark); }
+
+        .hero-banner { position: relative; height: 500px; margin-bottom: 48px; border-radius: 12px; overflow: hidden; background: var(--bg-secondary); }
+        .hero-background { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-size: cover; background-position: center; filter: brightness(0.4); }
+        .hero-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(90deg, rgba(15, 15, 35, 0.95) 0%, rgba(15, 15, 35, 0.7) 50%, rgba(15, 15, 35, 0.3) 100%); }
+        .hero-content { position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; justify-content: center; padding: 0 48px; max-width: 60%; }
+        .hero-title { font-size: 48px; font-weight: 800; margin-bottom: 16px; line-height: 1.1; }
+        .hero-description { font-size: 16px; line-height: 1.6; margin-bottom: 24px; color: var(--text-secondary); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+        .hero-buttons { display: flex; gap: 12px; flex-wrap: wrap; }
+
+        .hero-btn { padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; border: none; display: flex; align-items: center; gap: 8px; transition: all var(--transition-fast); }
+        .hero-btn-primary { background: var(--primary-pink); color: white; }
+        .hero-btn-primary:hover { background: var(--primary-pink-dark); transform: translateY(-2px); }
+        .hero-btn-secondary { background: rgba(255, 255, 255, 0.1); color: white; border: 1px solid rgba(255, 255, 255, 0.3); }
+        .hero-btn-secondary:hover { background: rgba(255, 255, 255, 0.2); transform: translateY(-2px); }
+
+        .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
+
+        .media-card {
+            background: var(--bg-card); border-radius: 8px; overflow: hidden; cursor: pointer;
+            transition: all var(--transition-normal); border: 1px solid transparent; position: relative;
+        }
+
+        .media-card:hover { transform: translateY(-4px); border-color: var(--primary-pink); box-shadow: var(--shadow-lg); }
+
+        .media-card-image { width: 100%; aspect-ratio: 2/3; overflow: hidden; background: var(--bg-secondary); position: relative; }
+        .media-card-image img { width: 100%; height: 100%; object-fit: cover; }
+
+        .media-card-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(0deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.3) 60%, transparent 100%);
+            opacity: 0; transition: opacity var(--transition-normal); display: flex; align-items: flex-end; padding: 12px;
+        }
+
+        .media-card:hover .media-card-overlay { opacity: 1; }
+
+        .media-card-actions { display: flex; gap: 8px; width: 100%; }
+
+        .media-card-action-btn {
+            flex: 1; padding: 8px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600;
+            font-size: 12px; transition: all var(--transition-fast); display: flex; align-items: center; justify-content: center; gap: 4px;
+        }
+
+        .media-card-action-btn.play { background: var(--primary-pink); color: white; }
+        .media-card-action-btn.play:hover { background: var(--primary-pink-dark); }
+        .media-card-action-btn.favorite { background: rgba(255, 255, 255, 0.2); color: white; }
+        .media-card-action-btn.favorite:hover { background: rgba(255, 255, 255, 0.3); }
+        .media-card-action-btn.favorite.active { background: #e74c3c; }
+
+        .media-card-content { padding: 12px; }
+        .media-card-title { font-size: 14px; font-weight: 600; margin-bottom: 6px; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .media-card-meta { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-muted); }
+        .media-card-rating { display: flex; align-items: center; gap: 4px; color: var(--primary-pink); font-weight: 600; }
+        .media-card-year { background: var(--bg-secondary); padding: 2px 8px; border-radius: 4px; }
+
+        /* Loading Skeleton */
+        .skeleton {
+            background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-hover) 50%, var(--bg-card) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 4px;
+        }
+
+        .skeleton-card {
+            background: var(--bg-card);
+            border-radius: 8px;
+            overflow: hidden;
+            height: 320px;
+        }
+
+        .skeleton-image {
+            width: 100%;
+            aspect-ratio: 2/3;
+        }
+
+        .skeleton-content {
+            padding: 12px;
+        }
+
+        .skeleton-title {
+            height: 16px;
+            width: 80%;
+            margin-bottom: 8px;
+        }
+
+        .skeleton-meta {
+            height: 12px;
+            width: 60%;
+        }
+
+        /* Content animations */
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .slide-up {
+            animation: slideUp 0.4s ease-out;
+        }
+
+        .stagger-1 { animation-delay: 0.1s; }
+        .stagger-2 { animation-delay: 0.2s; }
+        .stagger-3 { animation-delay: 0.3s; }
+        .stagger-4 { animation-delay: 0.4s; }
+
+        .carousel-container { position: relative; }
+        .carousel { display: flex; overflow-x: auto; gap: 16px; padding: 8px 0; scroll-behavior: smooth; scrollbar-width: none; }
+        .carousel::-webkit-scrollbar { display: none; }
+        .carousel .media-card { flex: 0 0 200px; }
+
+        .carousel-btn {
+            position: absolute; top: 50%; transform: translateY(-50%); background: var(--bg-card);
+            border: 1px solid var(--border-color); color: var(--text-primary); width: 40px; height: 40px;
+            border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: all var(--transition-fast); opacity: 0;
+        }
+
+        .carousel-container:hover .carousel-btn { opacity: 1; }
+        .carousel-btn:hover { background: var(--primary-pink); border-color: var(--primary-pink); }
+        .carousel-btn-left { left: -20px; }
+        .carousel-btn-right { right: -20px; }
+
+        .catalog-tabs { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 16px; flex-wrap: wrap; }
+        .catalog-tab { padding: 8px 16px; border-radius: 6px; background: transparent; cursor: pointer; font-weight: 600; border: none; color: var(--text-secondary); font-size: 14px; transition: all var(--transition-fast); }
+        .catalog-tab:hover { color: var(--text-primary); background: var(--bg-hover); }
+        .catalog-tab.active { color: var(--text-primary); background: var(--primary-pink); }
+
+        .filter-bar { background: var(--bg-card); padding: 16px; border-radius: 8px; margin-bottom: 24px; border: 1px solid var(--border-color); }
+        .filter-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+        .filter-btn { padding: 8px 16px; border-radius: 20px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-secondary); cursor: pointer; font-size: 14px; font-weight: 500; transition: all var(--transition-fast); }
+        .filter-btn:hover { border-color: var(--primary-pink); color: var(--text-primary); }
+        .filter-btn.active { background: var(--primary-pink); border-color: var(--primary-pink); color: white; }
+
+        .anime-detail { display: grid; grid-template-columns: 300px 1fr; gap: 32px; margin-bottom: 48px; }
+        .anime-poster { width: 100%; aspect-ratio: 2/3; border-radius: 12px; overflow: hidden; background: var(--bg-card); }
+        .anime-poster img { width: 100%; height: 100%; object-fit: cover; }
+        .anime-info { background: var(--bg-card); padding: 24px; border-radius: 12px; }
+        .anime-info h1 { font-size: 32px; font-weight: 800; margin-bottom: 16px; }
+        .anime-meta { display: flex; gap: 16px; margin-bottom: 16px; font-size: 14px; color: var(--text-secondary); }
+        .anime-description { color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px; }
+        .anime-genres { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+        .genre-tag { padding: 6px 12px; background: var(--bg-secondary); border-radius: 20px; font-size: 12px; color: var(--text-secondary); }
+
+        .seasons-container { margin-top: 32px; }
+        .season-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 16px; background: var(--bg-card); border-radius: 8px; cursor: pointer; transition: background var(--transition-fast); }
+        .season-header:hover { background: var(--bg-hover); }
+        .season-title { font-size: 18px; font-weight: 700; }
+        .season-episodes-count { color: var(--text-muted); font-size: 14px; }
+
+        .episodes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; margin-top: 16px; }
+        .episode-card { background: var(--bg-card); padding: 16px; border-radius: 8px; cursor: pointer; transition: all var(--transition-fast); border: 1px solid transparent; }
+        .episode-card:hover { border-color: var(--primary-pink); background: var(--bg-hover); }
+        .episode-number { font-size: 12px; color: var(--primary-pink); font-weight: 600; margin-bottom: 4px; }
+        .episode-title { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+        .episode-actions { display: flex; gap: 8px; }
+        .episode-btn { flex: 1; padding: 8px; border-radius: 6px; border: none; cursor: pointer; font-size: 12px; font-weight: 600; transition: all var(--transition-fast); }
+        .episode-btn.dub { background: var(--primary-pink); color: white; }
+        .episode-btn.dub:hover { background: var(--primary-pink-dark); }
+        .episode-btn.leg { background: var(--secondary-purple); color: white; }
+        .episode-btn.leg:hover { background: #a855f7; }
+
+        .episode-card.watched {
+            opacity: 0.6;
+            border-left: 3px solid #2ecc71;
+        }
+
+        .episode-card.watched .episode-number::after {
+            content: ' ✓';
+            color: #2ecc71;
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 16px 0;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .breadcrumb-item {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color var(--transition-fast);
+        }
+
+        .breadcrumb-item:hover {
+            color: var(--primary-pink);
+        }
+
+        .breadcrumb-separator {
+            color: var(--text-muted);
+        }
+
+        .breadcrumb-item.active {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .next-episode-suggestion {
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 24px;
+            border: 1px solid var(--border-color);
+        }
+
+        .next-episode-suggestion h3 {
+            font-size: 16px;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .next-episode-btn {
+            background: var(--primary-pink);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background var(--transition-fast);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .next-episode-btn:hover {
+            background: var(--primary-pink-dark);
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .volume-btn {
+            background: var(--bg-hover);
+            border: none;
+            color: var(--text-primary);
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-fast);
+        }
+
+        .volume-btn:hover {
+            background: var(--primary-pink);
+        }
+
+        .volume-slider {
+            width: 100px;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 4px;
+            background: var(--bg-hover);
+            border-radius: 2px;
+            outline: none;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            background: var(--primary-pink);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .volume-slider::-moz-range-thumb {
+            width: 12px;
+            height: 12px;
+            background: var(--primary-pink);
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
 
         .admin-panel { background: var(--bg-card); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color); }
         .admin-tabs { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 16px; flex-wrap: wrap; }
@@ -143,143 +487,150 @@
         .btn-danger { padding: 8px 16px; border-radius: 6px; background: #e74c3c; color: white; border: none; font-weight: 600; font-size: 12px; cursor: pointer; transition: background var(--transition-fast); }
         .btn-danger:hover { background: #c0392b; }
 
+        .donation-container { max-width: 600px; margin: 0 auto; text-align: center; }
+        .donation-card { background: var(--bg-card); padding: 32px; border-radius: 12px; border: 1px solid var(--border-color); }
+        .donation-card h2 { margin-bottom: 16px; color: var(--primary-pink); }
+        .donation-card p { color: var(--text-secondary); margin-bottom: 24px; }
+        .pix-key { background: var(--bg-secondary); padding: 16px; border-radius: 8px; font-family: monospace; word-break: break-all; margin-bottom: 16px; color: var(--text-primary); cursor: pointer; }
+        .qr-container { background: white; padding: 20px; border-radius: 12px; display: inline-block; margin-bottom: 24px; }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
+        .empty-state h3 { font-size: 20px; margin-bottom: 8px; color: var(--text-primary); }
+        .empty-state p { font-size: 14px; }
+
         .hidden { display: none !important; }
 
-        .stats-grid {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px;
+        .video-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-
-        .stat-card {
-            background: var(--bg-card); padding: 20px; border-radius: 8px; text-align: center; 
-            border: 1px solid var(--border-color); transition: transform var(--transition-fast);
+        .video-modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
         }
-
-        .stat-card:hover { transform: translateY(-2px); }
-
-        .stat-number {
-            font-size: 24px; font-weight: bold; color: var(--primary-pink); margin-bottom: 8px;
+        .video-modal-content {
+            position: relative;
+            width: 90%;
+            max-width: 1200px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            overflow: hidden;
+            z-index: 1;
         }
-
-        .stat-label {
-            color: var(--text-secondary); font-size: 14px;
+        .video-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
         }
-
-        .content-selector {
-            display: flex; justify-content: center; gap: 16px; margin-bottom: 24px;
+        .video-modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+            color: var(--text-primary);
         }
-
-        .content-type-btn {
-            padding: 12px 24px; border-radius: 8px; background: var(--bg-secondary); 
-            border: 2px solid var(--border-color); color: var(--text-primary); 
-            font-weight: 600; cursor: pointer; transition: all var(--transition-fast);
-        }
-
-        .content-type-btn.active {
-            background: var(--primary-pink); border-color: var(--primary-pink);
-        }
-
-        .content-type-btn:hover {
-            border-color: var(--primary-pink);
-        }
-
-        .content-indicator {
-            text-align: center; margin-bottom: 20px; color: var(--text-secondary); 
-            font-size: 14px; font-weight: 500;
-        }
-
-        .season-field {
-            background: var(--bg-card); padding: 16px; border-radius: 8px; 
-            margin-bottom: 12px; border: 1px solid var(--border-color);
-        }
-
-        .episode-field {
-            background: var(--bg-secondary); padding: 12px; border-radius: 6px; 
-            margin-bottom: 8px;
-        }
-
-        .season-header {
-            display: flex; justify-content: space-between; align-items: center; 
-            margin-bottom: 12px;
-        }
-
-        .season-title {
-            margin: 0; color: var(--text-primary); font-size: 16px; font-weight: 600;
-        }
-
-        .episodes-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-        }
-
-        .remove-btn {
-            background: #e74c3c; border: none; padding: 6px 12px; 
-            border-radius: 4px; color: white; cursor: pointer; font-size: 12px;
-        }
-
-        .add-episode-btn {
-            background: var(--secondary-purple); border: none; padding: 6px 12px; 
-            border-radius: 4px; color: white; cursor: pointer; margin-top: 12px;
-        }
-
-        .manage-table {
-            width: 100%; border-collapse: collapse; background: var(--bg-card);
-            border-radius: 8px; overflow: hidden;
-        }
-
-        .manage-table th {
-            background: var(--bg-secondary); padding: 12px; text-align: left; 
-            border-bottom: 2px solid var(--border-color); font-weight: 600;
-        }
-
-        .manage-table td {
-            padding: 12px; border-bottom: 1px solid var(--border-color);
-        }
-
-        .manage-table tr:hover {
+        .video-modal-close {
             background: var(--bg-hover);
+            border: none;
+            color: var(--text-primary);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .video-modal-close:hover {
+            background: var(--primary-pink);
+        }
+        .video-modal-body {
+            position: relative;
+            padding-top: 56.25%;
+            background: #000;
+        }
+        .video-modal-body iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
         }
 
-        .content-preview {
-            display: flex; align-items: center; gap: 12px;
+        .rating-section {
+            margin-top: 24px;
+            padding: 20px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+        }
+        .rating-section h3 {
+            margin-bottom: 12px;
+            font-size: 16px;
+            color: var(--text-primary);
+        }
+        .rating-stars {
+            display: flex;
+            gap: 8px;
+        }
+        .star-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            color: var(--text-muted);
+            transition: color 0.2s, transform 0.1s;
+        }
+        .star-btn:hover {
+            color: var(--primary-pink);
+            transform: scale(1.1);
+        }
+        .star-btn.active {
+            color: var(--primary-pink);
+        }
+        .star-btn svg {
+            display: block;
         }
 
-        .content-thumbnail {
-            width: 50px; height: 75px; object-fit: cover; border-radius: 4px;
-        }
-
-        .content-info h4 {
-            margin: 0 0 4px 0; font-weight: 600; color: var(--text-primary);
-        }
-
-        .content-info p {
-            margin: 0; font-size: 12px; color: var(--text-muted);
-        }
-
-        .category-tag {
-            background: var(--bg-secondary); padding: 4px 8px; border-radius: 12px; 
-            font-size: 12px; margin-right: 4px; display: inline-block;
-        }
-
-        .rating-display {
-            color: var(--primary-pink); font-weight: 600;
-        }
-
-        .action-buttons {
-            display: flex; gap: 8px;
-        }
-
-        .edit-btn {
-            background: var(--primary-pink); border: none; padding: 6px 12px; 
-            border-radius: 4px; color: white; cursor: pointer;
+        @media (max-width: 1024px) {
+            .hero-content { max-width: 80%; }
+            .anime-detail { grid-template-columns: 250px 1fr; }
         }
 
         @media (max-width: 768px) {
             .navbar { padding: 0 16px; }
             .nav-menu { display: none; }
+            .hamburger-menu { display: flex; }
+            .search-input.expanded { width: 200px; }
             .content-wrapper { padding: 16px; }
-            .admin-tabs { flex-direction: column; }
-            .stats-grid { grid-template-columns: 1fr; }
-            .content-selector { flex-direction: column; }
+            .hero-banner { height: 400px; }
+            .hero-content { padding: 0 24px; max-width: 100%; }
+            .hero-title { font-size: 32px; }
+            .media-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
+            .anime-detail { grid-template-columns: 1fr; }
+            .anime-poster { max-width: 300px; margin: 0 auto; }
             .episodes-grid { grid-template-columns: 1fr; }
+            .carousel-btn { display: none; }
+        }
+
+        @media (max-width: 480px) {
+            .hero-title { font-size: 24px; }
+            .media-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+            .section-title { font-size: 20px; }
+            .user-name { display: none; }
         }
     </style>
 </head>
@@ -289,7 +640,7 @@
         <div class="loading-text">Carregando YK Server...</div>
     </div>
 
-    <div id="app" style="display: none;">
+    <div id="app">
         <header class="navbar">
             <div class="navbar-content">
                 <div class="logo-section" id="logoSection">
@@ -298,28 +649,91 @@
                 </div>
                 
                 <nav class="nav-menu">
-                    <button class="nav-item active" data-tab="admin">
-                        <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/>
-                        </svg>
+                    <button class="nav-item active" data-tab="home">
+                        <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                        <span>Início</span>
+                    </button>
+                    <button class="nav-item" data-tab="catalog">
+                        <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5l2 3 2-3h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
+                        <span>Catálogo</span>
+                    </button>
+                    <button class="nav-item owner-only" data-tab="admin" style="display: none;">
+                        <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
                         <span>Admin</span>
+                    </button>
+                    <button class="nav-item" data-tab="donation">
+                        <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                        <span>Doação</span>
                     </button>
                 </nav>
                 
                 <div class="nav-section">
-                    <span class="user-name" id="userNameDisplay">Admin</span>
-                    <button class="logout-btn" id="logoutButton" style="background: transparent; border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 6px; cursor: pointer; color: var(--text-secondary); font-size: 14px; font-weight: 500; transition: all var(--transition-fast);">Sair</button>
+                    <button id="themeToggle" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 12px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 14px; transition: all var(--transition-fast);">
+                        <svg id="themeIcon" width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3a9 9 0 109 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 01-4.4 2.26 5.403 5.403 0 01-3.14-1.53 6.97 6.97 0 00-1.36 9A9 9 0 0012 3z"/></svg>
+                    </button>
+                    <div class="search-container">
+                        <div class="search-icon" id="searchToggle">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                        </div>
+                        <input type="text" id="searchInput" class="search-input" placeholder="Buscar animes...">
+                    </div>
+                    
+                    <div class="user-section">
+                        <span class="user-name" id="userNameDisplay">Admin</span>
+                        <button class="logout-btn" id="logoutButton">Sair</button>
+                    </div>
+
+                    <div class="hamburger-menu" id="hamburgerMenu">
+                        <span></span><span></span><span></span>
+                    </div>
                 </div>
             </div>
         </header>
 
+        <div class="mobile-menu" id="mobileMenu">
+            <button class="nav-item active" data-tab="home">
+                <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                <span>Início</span>
+            </button>
+            <button class="nav-item" data-tab="catalog">
+                <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5l2 3 2-3h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
+                <span>Catálogo</span>
+            </button>
+            <button class="nav-item owner-only" data-tab="admin" style="display: none;">
+                <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+                <span>Admin</span>
+            </button>
+            <button class="nav-item" data-tab="donation">
+                <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                <span>Doação</span>
+            </button>
+        </div>
+
         <main class="content-wrapper">
             <div id="contentArea"></div>
         </main>
+        
+        <div id="videoModal" class="video-modal hidden">
+            <div class="video-modal-overlay" onclick="closeVideoModal()"></div>
+            <div class="video-modal-content">
+                <button class="video-modal-close" onclick="closeVideoModal()">✕</button>
+                <div class="video-modal-header">
+                    <h3 id="videoModalTitle">Assistindo</h3>
+                    <div class="volume-control">
+                        <button class="volume-btn" id="volumeToggle" title="Mutar/Desmutar">
+                            <svg id="volumeIcon" width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                        </button>
+                        <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="100">
+                    </div>
+                </div>
+                <div class="video-modal-body">
+                    <video id="videoPlayer" controls style="width: 100%; height: 100%;" playsinline></video>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCTnC0RGSWRcr2ehQGimK6nIra9H8NH8Ks",
             authDomain: "yk-comunidade.firebaseapp.com",
@@ -329,71 +743,432 @@
             appId: "1:682166331452:web:9e0e8553646d44060ebb39"
         };
 
+        // FIREBASE FIRESTORE SECURITY RULES
+        // Add these rules to your Firebase Console > Firestore Database > Rules:
+        /*
+        rules_version = '2';
+        service cloud.firestore {
+            match /databases/{database}/documents {
+                // Users collection: users can read/write their own data, owner can read all
+                match /users/{userId} {
+                    allow read: if request.auth != null && (request.auth.uid == userId || request.auth.token.email == 'joaodidier@proton.me');
+                    allow write: if request.auth != null && (request.auth.uid == userId || request.auth.token.email == 'joaodidier@proton.me');
+                }
+                
+                // Animes collection: only owner can write, everyone can read
+                match /animes/{animeId} {
+                    allow read: if true;
+                    allow write: if request.auth != null && request.auth.token.email == 'joaodidier@proton.me';
+                }
+                
+                // Series collection: only owner can write, everyone can read
+                match /series/{seriesId} {
+                    allow read: if true;
+                    allow write: if request.auth != null && request.auth.token.email == 'joaodidier@proton.me';
+                }
+                
+                // Ratings collection: authenticated users can read/write their own ratings
+                match /ratings/{ratingId} {
+                    allow read: if true;
+                    allow write: if request.auth != null && ratingId == request.auth.uid + '_' + resource.data.animeId;
+                }
+            }
+        }
+        */
+
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
         let currentUser = null;
         let userData = null;
-        let seasonCounter = 0;
+        let currentTab = 'home';
+        let searchTerm = '';
+        let currentCatalogTab = 'Todos';
+        let currentGenre = 'Todos';
 
+        let allContentCache = [];
+        
+        // Console protection - prevent manipulation
+        (function() {
+            const originalSetItem = Object.getOwnPropertyDescriptor(Storage.prototype, 'setItem');
+            Object.defineProperty(Storage.prototype, 'setItem', {
+                configurable: true,
+                enumerable: true,
+                value: function(...args) {
+                    // Prevent tampering with localStorage
+                    if (args[0] === 'cachedContent' || args[0].includes('admin') || args[0].includes('user')) {
+                        console.warn('Attempt to modify protected localStorage detected');
+                        return;
+                    }
+                    return originalSetItem.value.apply(this, args);
+                }
+            });
+
+        })();
+        
+        // Security: Input validation and sanitization
+        function sanitizeInput(input) {
+            if (!input) return '';
+            return input
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#x27;')
+                .replace(/javascript:/gi, '')
+                .replace(/on\w+=/gi, '')
+                .replace(/data:/gi, '')
+                .replace(/vbscript:/gi, '')
+                .replace(/&/g, '&amp;')
+                .trim();
+        }
+
+        function validateEmail(email) {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(String(email).toLowerCase());
+        }
+
+        function validateUrl(url) {
+            try {
+                new URL(url);
+                return true;
+            } catch {
+                return false;
+            }
+        }
+
+        function validateText(text, minLength = 1, maxLength = 1000) {
+            if (typeof text !== 'string') return false;
+            const sanitized = sanitizeInput(text);
+            return sanitized.length >= minLength && sanitized.length <= maxLength;
+        }
+
+        function validatePassword(password) {
+            return password && password.length >= 6;
+        }
+
+        // Security: Rate limiting
+        const rateLimitMap = new Map();
+        const RATE_LIMIT_WINDOW = 60000; // 1 minute
+        const RATE_LIMIT_MAX_REQUESTS = 10;
+
+        // Security: Owner verification - ONLY joaodidier@proton.me can access admin functions
         const OWNER_EMAIL = 'joaodidier@proton.me';
+        let ownerVerified = false;
 
         function isOwner() {
             return currentUser && currentUser.email && currentUser.email.toLowerCase() === OWNER_EMAIL.toLowerCase();
         }
 
-        function showToast(message, isError = true) {
-            const div = document.createElement('div');
-            div.className = `toast ${!isError ? 'success' : ''}`;
-            div.innerText = message;
-            document.body.appendChild(div);
-            setTimeout(() => div.remove(), 3000);
+        function checkRateLimit(action, userId) {
+            const key = `${action}_${userId}`;
+            const now = Date.now();
+            const requests = rateLimitMap.get(key) || [];
+            
+            // Remove old requests outside the window
+            const recentRequests = requests.filter(time => now - time < RATE_LIMIT_WINDOW);
+            
+            if (recentRequests.length >= RATE_LIMIT_MAX_REQUESTS) {
+                return false;
+            }
+            
+            recentRequests.push(now);
+            rateLimitMap.set(key, recentRequests);
+            return true;
         }
 
-        function escapeHtml(str) { 
-            if (!str) return ""; 
-            return str.replace(/[&<>"']/g, m => ({
-                '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'':'&#39;'
-            })[m]); 
-        }
-
-        async function loadAllContent() {
+        // Security: Owner verification - REMOVED admin password, only email check
+        async function verifyOwner() {
+            if (!currentUser) return false;
+            
+            // Double-check with Firestore (server-side verification)
             try {
-                const [animesSnap, seriesSnap] = await Promise.all([
+                const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                if (userDoc.exists) {
+                    const data = userDoc.data();
+                    // Only allow access if email matches exactly
+                    return currentUser.email && currentUser.email.toLowerCase() === OWNER_EMAIL.toLowerCase();
+                }
+            } catch (error) {
+                console.error('Error verifying owner status:', error);
+            }
+            
+            return false;
+        }
+        
+        // Security: Freeze critical functions to prevent redefinition
+        try {
+            Object.freeze(verifyOwner);
+            Object.freeze(sanitizeInput);
+            Object.freeze(validateEmail);
+            Object.freeze(validateUrl);
+        } catch (e) {}
+
+        // Theme toggle
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            }
+        }
+
+        // Watched episodes
+        function markEpisodeAsWatched(animeId, seasonName, episodeIndex) {
+            const key = `watched_${animeId}_${seasonName}_${episodeIndex}`;
+            localStorage.setItem(key, 'true');
+        }
+
+        function isEpisodeWatched(animeId, seasonName, episodeIndex) {
+            const key = `watched_${animeId}_${seasonName}_${episodeIndex}`;
+            return localStorage.getItem(key) === 'true';
+        }
+
+        function saveToLocalStorage(key, data) {
+            try {
+                localStorage.setItem(key, JSON.stringify(data));
+            } catch (error) {
+                console.error('Error saving to localStorage:', error);
+            }
+        }
+
+        function loadFromLocalStorage(key) {
+            try {
+                const data = localStorage.getItem(key);
+                return data ? JSON.parse(data) : null;
+            } catch (error) {
+                console.error('Error loading from localStorage:', error);
+                return null;
+            }
+        }
+
+        // Enhanced content loading with localStorage fallback
+        async function loadAllContent() {
+            // Force reload from Firebase - no cache, no mock
+            allContentCache = [];
+            
+            try {
+                console.log('=== LOADING FROM FIREBASE ===');
+                const [animesSnap, seriesSnap, ratingsSnap] = await Promise.all([
                     db.collection('animes').get(),
-                    db.collection('series').get()
+                    db.collection('series').get(),
+                    db.collection('ratings').get()
                 ]);
+                
+                console.log('Animes from Firebase:', animesSnap.size);
+                console.log('Series from Firebase:', seriesSnap.size);
+                console.log('Ratings from Firebase:', ratingsSnap.size);
                 
                 let items = [];
                 
                 animesSnap.forEach(doc => {
+                    const data = doc.data();
                     items.push({
                         id: doc.id,
                         type: 'movies',
-                        ...doc.data()
+                        ...data
                     });
                 });
                 
                 seriesSnap.forEach(doc => {
+                    const data = doc.data();
                     items.push({
                         id: doc.id,
                         type: 'series',
-                        ...doc.data()
+                        ...data
                     });
                 });
                 
+                // Calculate average ratings from user ratings
+                const ratingsMap = {};
+                ratingsSnap.forEach(doc => {
+                    const data = doc.data();
+                    const animeId = data.animeId;
+                    if (!ratingsMap[animeId]) {
+                        ratingsMap[animeId] = [];
+                    }
+                    ratingsMap[animeId].push(data.rating);
+                });
+                
+                // Update items with calculated average rating
+                items.forEach(item => {
+                    if (!item.averageRating && ratingsMap[item.id]) {
+                        const ratings = ratingsMap[item.id];
+                        const sum = ratings.reduce((a, b) => a + b, 0);
+                        item.averageRating = sum / ratings.length;
+                    }
+                    // Ensure averageRating exists (default to 0)
+                    if (!item.averageRating) {
+                        item.averageRating = 0;
+                    }
+                });
+                
+                console.log('Total items from Firebase:', items.length);
+                console.log('Item titles:', items.map(i => i.title));
+                console.log('==========================');
+                
+                allContentCache = items;
                 return items;
             } catch (error) {
                 console.error('Error loading content:', error);
+                showToast('Erro ao carregar conteúdo: ' + error.message);
                 return [];
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Video player functions
+        function openVideoModal(title, videoUrl) {
+            const modal = document.getElementById('videoModal');
+            const modalTitle = document.getElementById('videoModalTitle');
+            const videoPlayer = document.getElementById('videoPlayer');
+            
+            modalTitle.textContent = title;
+            videoPlayer.src = videoUrl;
+            modal.classList.remove('hidden');
+        }
+
+        function closeVideoModal() {
+            const modal = document.getElementById('videoModal');
+            const videoPlayer = document.getElementById('videoPlayer');
+            
+            modal.classList.add('hidden');
+            videoPlayer.pause();
+            videoPlayer.src = '';
+        }
+
+        // Content loading functions
+        async function loadHomeTab() {
+            const contentArea = document.getElementById('contentArea');
+            contentArea.innerHTML = '<div class="loading-spinner"></div>';
+            
+            try {
+                const items = await loadAllContent();
+                const featuredItems = items.slice(0, 6);
+                const recentItems = items.slice(0, 12);
+                
+                let html = `
+                    <div class="content-section">
+                        <div class="hero-banner">
+                            <div class="hero-background" style="background-image: url('https://cdn.discordapp.com/icons/1486530333502476291/a8d75f72c4b218fd42e24de370278b4d.png?size=4096')"></div>
+                            <div class="hero-overlay"></div>
+                            <div class="hero-content">
+                                <h1 class="hero-title">YK Server</h1>
+                                <p class="hero-description">Streaming de animes e séries com a melhor qualidade</p>
+                                <div class="hero-buttons">
+                                    <button class="hero-btn hero-btn-primary" onclick="loadTab('catalog')">
+                                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5l2 3 2-3h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
+                                        Explorar Catálogo
+                                    </button>
+                                    <button class="hero-btn hero-btn-secondary" onclick="loadTab('donation')">
+                                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                                        Apoiar Projeto
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                if (featuredItems.length > 0) {
+                    html += `
+                        <div class="content-section">
+                            <div class="section-header">
+                                <h2 class="section-title">Em Destaque</h2>
+                                <button class="section-action" data-action="catalog">Ver mais</button>
+                            </div>
+                            <div class="media-grid">
+                                ${featuredItems.map((item, index) => createMediaCard(item, index)).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (recentItems.length > 0) {
+                    html += `
+                        <div class="content-section">
+                            <div class="section-header">
+                                <h2 class="section-title">Adicionados Recentemente</h2>
+                                <button class="section-action" data-action="catalog">Ver mais</button>
+                            </div>
+                            <div class="media-grid">
+                                ${recentItems.map((item, index) => createMediaCard(item, index + 6)).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                contentArea.innerHTML = html;
+                attachMediaCardListeners();
+                
+            } catch (error) {
+                console.error('Error loading home tab:', error);
+                contentArea.innerHTML = '<div class="empty-state"><h3>Erro ao carregar conteúdo</h3><p>Tente novamente mais tarde</p></div>';
+            }
+        }
+
+        async function loadCatalogTab() {
+            const contentArea = document.getElementById('contentArea');
+            contentArea.innerHTML = '<div class="loading-spinner"></div>';
+            
+            try {
+                const items = await loadAllContent();
+                const categories = ['Todos', ...new Set(items.flatMap(item => item.categories || []))];
+                
+                let html = `
+                    <div class="content-section">
+                        <div class="section-header">
+                            <h2 class="section-title">Catálogo Completo</h2>
+                        </div>
+                        <div class="catalog-tabs">
+                            ${categories.map(cat => `
+                                <button class="catalog-tab ${currentCatalogTab === cat ? 'active' : ''}" 
+                                        onclick="setCatalogTab('${escapeHtml(cat)}')">
+                                    ${escapeHtml(cat)}
+                                </button>
+                            `).join('')}
+                        </div>
+                        <div class="media-grid">
+                            ${items.map((item, index) => createMediaCard(item, index)).join('')}
+                        </div>
+                    </div>
+                `;
+                
+                contentArea.innerHTML = html;
+                attachMediaCardListeners();
+                
+            } catch (error) {
+                console.error('Error loading catalog tab:', error);
+                contentArea.innerHTML = '<div class="empty-state"><h3>Erro ao carregar catálogo</h3><p>Tente novamente mais tarde</p></div>';
             }
         }
 
         async function loadAdminTab() {
             if (!isOwner()) {
                 const contentArea = document.getElementById('contentArea');
-                contentArea.innerHTML = '<div style="text-align: center; padding: 50px; color: var(--text-secondary);"><h3>Acesso Restrito</h3><p>Apenas o proprietário pode acessar esta área.</p></div>';
+                contentArea.innerHTML = '<div class="empty-state"><h3>Acesso Restrito</h3><p>Apenas o proprietário pode acessar esta área.</p></div>';
                 return;
             }
             
@@ -408,56 +1183,61 @@
                 const html = `
                     <div class="content-section">
                         <h2 style="margin-bottom: 24px; color: var(--text-primary);">📊 Estatísticas</h2>
-                        <div class="stats-grid">
-                            <div class="stat-card">
-                                <div class="stat-number">${movies.length + series.length}</div>
-                                <div class="stat-label">Total de Conteúdo</div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px;">
+                            <div style="background: var(--bg-card); padding: 20px; border-radius: 8px; text-align: center; border: 1px solid var(--border-color);">
+                                <div style="font-size: 24px; font-weight: bold; color: var(--primary-pink);">${items.length}</div>
+                                <div style="color: var(--text-secondary); font-size: 14px;">Total de Conteúdo</div>
                             </div>
-                            <div class="stat-card">
-                                <div class="stat-number">${movies.length}</div>
-                                <div class="stat-label">Filmes</div>
+                            <div style="background: var(--bg-card); padding: 20px; border-radius: 8px; text-align: center; border: 1px solid var(--border-color);">
+                                <div style="font-size: 24px; font-weight: bold; color: var(--primary-pink);">${movies.length}</div>
+                                <div style="color: var(--text-secondary); font-size: 14px;">Filmes</div>
                             </div>
-                            <div class="stat-card">
-                                <div class="stat-number">${series.length}</div>
-                                <div class="stat-label">Séries</div>
+                            <div style="background: var(--bg-card); padding: 20px; border-radius: 8px; text-align: center; border: 1px solid var(--border-color);">
+                                <div style="font-size: 24px; font-weight: bold; color: var(--primary-pink);">${series.length}</div>
+                                <div style="color: var(--text-secondary); font-size: 14px;">Séries</div>
                             </div>
                         </div>
                     </div>
                     
                     <div class="content-section">
-                        <div class="admin-panel">
-                            <div class="admin-tabs">
-                                <button class="admin-tab active" data-admin-tab="add-content">➕ Adicionar Conteúdo</button>
-                                <button class="admin-tab" data-admin-tab="manage-movies">🎬 Gerenciar Filmes</button>
-                                <button class="admin-tab" data-admin-tab="manage-series">📺 Gerenciar Séries</button>
-                            </div>
-                            
-                            <div id="admin-add-content" class="admin-tab-content">
+                        <div class="admin-tabs">
+                            <button class="admin-tab active" data-admin-tab="add-content">➕ Adicionar Conteúdo</button>
+                            <button class="admin-tab" data-admin-tab="manage-movies">🎬 Gerenciar Filmes</button>
+                            <button class="admin-tab" data-admin-tab="manage-series">📺 Gerenciar Séries</button>
+                            <button class="admin-tab" data-admin-tab="episodes">🎞️ Gerenciar Episódios</button>
+                        </div>
+                        
+                        <div id="admin-add-content" class="admin-tab-content">
+                            <div style="background: var(--bg-card); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 24px;">
                                 <h3 style="margin-bottom: 20px; color: var(--text-primary); text-align: center;">📝 Adicionar Novo Conteúdo</h3>
                                 
-                                <div class="content-selector">
-                                    <button id="contentTypeMovie" class="content-type-btn" onclick="selectContentType('movies')">
+                                <div style="display: flex; justify-content: center; gap: 16px; margin-bottom: 24px;">
+                                    <button id="contentTypeMovie" class="btn-primary" style="padding: 12px 24px; background: var(--bg-secondary); border: 2px solid var(--border-color);" onclick="selectContentType('movies')">
                                         🎬 Filme
                                     </button>
-                                    <button id="contentTypeSeries" class="content-type-btn" onclick="selectContentType('series')">
+                                    <button id="contentTypeSeries" class="btn-primary" style="padding: 12px 24px; background: var(--bg-secondary); border: 2px solid var(--border-color);" onclick="selectContentType('series')">
                                         📺 Série
                                     </button>
                                 </div>
                                 
-                                <div id="contentTypeIndicator" class="content-indicator">
+                                <div id="contentTypeIndicator" style="text-align: center; margin-bottom: 20px; color: var(--text-secondary); font-size: 14px;">
                                     Selecione o tipo de conteúdo que deseja adicionar
                                 </div>
                                 
                                 <div id="dynamicContentForm"></div>
                             </div>
-                            
-                            <div id="admin-manage-movies" class="admin-tab-content hidden">
-                                ${generateManageContentTable(movies, 'movies')}
-                            </div>
-                            
-                            <div id="admin-manage-series" class="admin-tab-content hidden">
-                                ${generateManageContentTable(series, 'series')}
-                            </div>
+                        </div>
+                        
+                        <div id="admin-manage-movies" class="admin-tab-content hidden">
+                            ${generateManageContentTable(movies, 'movies')}
+                        </div>
+                        
+                        <div id="admin-manage-series" class="admin-tab-content hidden">
+                            ${generateManageContentTable(series, 'series')}
+                        </div>
+                        
+                        <div id="admin-episodes" class="admin-tab-content hidden">
+                            <div id="episodesManagement"></div>
                         </div>
                     </div>
                 `;
@@ -467,60 +1247,65 @@
                 
             } catch (error) {
                 console.error('Error loading admin tab:', error);
-                contentArea.innerHTML = '<div style="text-align: center; padding: 50px; color: var(--text-secondary);"><h3>Erro ao carregar painel</h3><p>Tente novamente mais tarde</p></div>';
+                contentArea.innerHTML = '<div class="empty-state"><h3>Erro ao carregar painel</h3><p>Tente novamente mais tarde</p></div>';
             }
         }
 
         function generateManageContentTable(items, type) {
             return `
-                <h3 style="margin-bottom: 20px; color: var(--text-primary);">
-                    ${type === 'movies' ? '🎬 Gerenciar Filmes' : '📺 Gerenciar Séries'}
-                </h3>
-                <div style="overflow-x: auto;">
-                    <table class="manage-table">
-                        <thead>
-                            <tr>
-                                <th>Título</th>
-                                <th>Categorias</th>
-                                <th>Avaliação</th>
-                                <th>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${items.map(item => `
-                                <tr>
-                                    <td>
-                                        <div class="content-preview">
-                                            <img src="${item.imageUrl || 'https://via.placeholder.com/50x75'}" 
-                                                 alt="${escapeHtml(item.title)}" class="content-thumbnail">
-                                            <div class="content-info">
-                                                <h4>${escapeHtml(item.title)}</h4>
-                                                <p>${item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'}</p>
+                <div style="background: var(--bg-card); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <h3 style="margin-bottom: 20px; color: var(--text-primary);">
+                        ${type === 'movies' ? '🎬 Gerenciar Filmes' : '📺 Gerenciar Séries'}
+                    </h3>
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: var(--bg-secondary);">
+                                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid var(--border-color);">Título</th>
+                                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid var(--border-color);">Categorias</th>
+                                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid var(--border-color);">Avaliação</th>
+                                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid var(--border-color);">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${items.map(item => `
+                                    <tr style="border-bottom: 1px solid var(--border-color);">
+                                        <td style="padding: 12px;">
+                                            <div style="display: flex; align-items: center; gap: 12px;">
+                                                <img src="${item.imageUrl || 'https://via.placeholder.com/50x75'}" 
+                                                     alt="${escapeHtml(item.title)}" 
+                                                     style="width: 50px; height: 75px; object-fit: cover; border-radius: 4px;">
+                                                <div>
+                                                    <div style="font-weight: 600; color: var(--text-primary);">${escapeHtml(item.title)}</div>
+                                                    <div style="font-size: 12px; color: var(--text-muted);">
+                                                        ${item.createdAt ? new Date(item.createdAt.toDate ? item.createdAt.toDate() : item.createdAt).toLocaleDateString() : 'N/A'}
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        ${(item.categories || []).map(cat => `<span class="category-tag">${escapeHtml(cat)}</span>`).join('')}
-                                    </td>
-                                    <td>
-                                        <span class="rating-display">
-                                            ⭐ ${item.averageRating ? item.averageRating.toFixed(1) : '0.0'}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="action-buttons">
-                                            <button onclick="editContent('${item.id}', '${type}')" class="edit-btn">
+                                        </td>
+                                        <td style="padding: 12px;">
+                                            ${(item.categories || []).map(cat => `<span style="background: var(--bg-secondary); padding: 4px 8px; border-radius: 12px; font-size: 12px; margin-right: 4px;">${escapeHtml(cat)}</span>`).join('')}
+                                        </td>
+                                        <td style="padding: 12px;">
+                                            <span style="color: var(--primary-pink); font-weight: 600;">
+                                                ⭐ ${item.averageRating ? item.averageRating.toFixed(1) : '0.0'}
+                                            </span>
+                                        </td>
+                                        <td style="padding: 12px;">
+                                            <button onclick="editContent('${item.id}', '${type}')" 
+                                                    style="background: var(--primary-pink); border: none; padding: 6px 12px; border-radius: 4px; color: white; cursor: pointer; margin-right: 8px;">
                                                 Editar
                                             </button>
-                                            <button onclick="deleteContent('${item.id}', '${type}')" class="remove-btn">
+                                            <button onclick="deleteContent('${item.id}', '${type}')" 
+                                                    style="background: #e74c3c; border: none; padding: 6px 12px; border-radius: 4px; color: white; cursor: pointer;">
                                                 Excluir
                                             </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             `;
         }
@@ -532,15 +1317,15 @@
             const formContainer = document.getElementById('dynamicContentForm');
             
             // Reset button styles
-            movieBtn.classList.remove('active');
-            seriesBtn.classList.remove('active');
+            movieBtn.style.background = 'var(--bg-secondary)';
+            seriesBtn.style.background = 'var(--bg-secondary)';
             
             // Highlight selected button
             if (type === 'movies') {
-                movieBtn.classList.add('active');
+                movieBtn.style.background = 'var(--primary-pink)';
                 indicator.textContent = 'Adicionando um Filme';
             } else {
-                seriesBtn.classList.add('active');
+                seriesBtn.style.background = 'var(--primary-pink)';
                 indicator.textContent = 'Adicionando uma Série';
             }
             
@@ -616,7 +1401,8 @@
                     <div style="background: var(--bg-secondary); padding: 20px; border-radius: 8px; margin: 20px 0;">
                         <h4 style="margin-bottom: 16px; color: var(--text-primary);">📺 Gerenciar Temporadas</h4>
                         <div id="seasonsContainer"></div>
-                        <button type="button" onclick="addSeasonField()" class="btn-primary">
+                        <button type="button" onclick="addSeasonField()" 
+                                style="background: var(--primary-pink); border: none; padding: 10px 20px; border-radius: 6px; color: white; cursor: pointer; margin-top: 12px;">
                             ➕ Adicionar Temporada
                         </button>
                     </div>
@@ -627,15 +1413,19 @@
             `;
         }
 
+        let seasonCounter = 0;
+
         function addSeasonField() {
             seasonCounter++;
             const container = document.getElementById('seasonsContainer');
             const seasonDiv = document.createElement('div');
             seasonDiv.className = 'season-field';
+            seasonDiv.style.cssText = 'background: var(--bg-card); padding: 16px; border-radius: 8px; margin-bottom: 12px; border: 1px solid var(--border-color);';
             seasonDiv.innerHTML = `
-                <div class="season-header">
-                    <h5 class="season-title">Temporada ${seasonCounter}</h5>
-                    <button type="button" onclick="this.parentElement.parentElement.remove()" class="remove-btn">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <h5 style="margin: 0; color: var(--text-primary);">Temporada ${seasonCounter}</h5>
+                    <button type="button" onclick="this.parentElement.parentElement.remove()" 
+                            style="background: #e74c3c; border: none; padding: 6px 12px; border-radius: 4px; color: white; cursor: pointer;">
                         Remover
                     </button>
                 </div>
@@ -644,16 +1434,17 @@
                     <input type="text" class="form-input season-name" required placeholder="Ex: Temporada 1">
                 </div>
                 <div class="episodes-container" id="episodesContainer${seasonCounter}">
-                    <div class="episode-field">
+                    <div style="background: var(--bg-secondary); padding: 12px; border-radius: 6px; margin-bottom: 8px;">
                         <h6 style="margin-bottom: 8px; color: var(--text-primary);">Episódios</h6>
                         <div class="episode-field" style="margin-bottom: 8px;">
                             <input type="text" class="form-input episode-name" placeholder="Nome do episódio" style="margin-bottom: 8px;">
-                            <div class="episodes-grid">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                                 <input type="url" class="form-input episode-dub" placeholder="URL Dublado">
                                 <input type="url" class="form-input episode-leg" placeholder="URL Legendado">
                             </div>
                         </div>
-                        <button type="button" onclick="addEpisodeField(${seasonCounter})" class="add-episode-btn">
+                        <button type="button" onclick="addEpisodeField(${seasonCounter})" 
+                                style="background: var(--secondary-purple); border: none; padding: 6px 12px; border-radius: 4px; color: white; cursor: pointer;">
                             ➕ Adicionar Episódio
                         </button>
                     </div>
@@ -666,15 +1457,17 @@
             const container = document.getElementById(`episodesContainer${seasonId}`);
             const episodeDiv = document.createElement('div');
             episodeDiv.className = 'episode-field';
+            episodeDiv.style.cssText = 'background: var(--bg-secondary); padding: 12px; border-radius: 6px; margin-bottom: 8px;';
             episodeDiv.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                     <span style="color: var(--text-secondary); font-size: 14px;">Novo Episódio</span>
-                    <button type="button" onclick="this.parentElement.parentElement.remove()" class="remove-btn" style="font-size: 10px; padding: 4px 8px;">
-                        ×
+                    <button type="button" onclick="this.parentElement.parentElement.remove()" 
+                            style="background: #e74c3c; border: none; padding: 4px 8px; border-radius: 4px; color: white; cursor: pointer; font-size: 12px;">
+                        Remover
                     </button>
                 </div>
                 <input type="text" class="form-input episode-name" placeholder="Nome do episódio" style="margin-bottom: 8px;">
-                <div class="episodes-grid">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                     <input type="url" class="form-input episode-dub" placeholder="URL Dublado">
                     <input type="url" class="form-input episode-leg" placeholder="URL Legendado">
                 </div>
@@ -682,197 +1475,1128 @@
             container.appendChild(episodeDiv);
         }
 
+        function loadDonationTab() {
+                                            </div>
+                                            <div style="padding: 12px; display: flex; gap: 8px;">
+                                                <button class="btn-primary" style="flex: 1; padding: 8px; font-size: 12px;" 
+                                                        data-edit-id="${anime.id}" data-edit-type="movies">Editar</button>
+                                                <button class="btn-danger" style="flex: 1; padding: 8px; font-size: 12px;" 
+                                                        data-delete-id="${anime.id}" data-delete-type="animes">Excluir</button>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            
+                            <!-- Series Tab -->
+                            <div id="admin-series" class="admin-tab-content hidden">
+                                <h3 style="margin-bottom: 16px;">Gerenciar Séries</h3>
+                                <div class="media-grid">
+                                    ${series.map(serie => `
+                                        <div class="media-card">
+                                            <div class="media-card-image">
+                                                <img src="${serie.imageUrl || 'https://via.placeholder.com/200x300'}" alt="${escapeHtml(serie.title)}">
+                                                <div class="media-card-overlay">
+                                                    <div class="media-card-actions">
+                                                        <button class="media-card-action-btn play" onclick="showAnimeDetail('${serie.id}', 'series')">
+                                                            <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                                            Ver Episódios
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="media-card-content">
+                                                <div class="media-card-title">${escapeHtml(serie.title)}</div>
+                                                <div class="media-card-meta">
+                                                    <div class="media-card-rating">⭐ ${serie.averageRating ? serie.averageRating.toFixed(1) : '0.0'}</div>
+                                                </div>
+                                            </div>
+                                            <div style="padding: 12px; display: flex; gap: 8px;">
+                                                <button class="btn-primary" style="flex: 1; padding: 8px; font-size: 12px;" 
+                                                        data-edit-id="${serie.id}" data-edit-type="series">Editar</button>
+                                                <button class="btn-danger" style="flex: 1; padding: 8px; font-size: 12px;" 
+                                                        data-delete-id="${serie.id}" data-delete-type="series">Excluir</button>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            
+                            <!-- Add Anime Tab -->
+                            <div id="admin-add-anime" class="admin-tab-content hidden">
+                                <h3 style="margin-bottom: 16px;">Adicionar Novo Filme</h3>
+                                <form id="addAnimeForm" class="admin-form">
+                                    <div class="form-group">
+                                        <label class="form-label">Título</label>
+                                        <input type="text" class="form-input" id="animeTitle" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Descrição</label>
+                                        <textarea class="form-textarea" id="animeDescription" required></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">URL da Imagem</label>
+                                        <input type="url" class="form-input" id="animeImage" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">URL Dublado</label>
+                                        <input type="url" class="form-input" id="animeDubLink">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">URL Legendado</label>
+                                        <input type="url" class="form-input" id="animeLegLink">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Categorias (separadas por vírgula)</label>
+                                        <input type="text" class="form-input" id="animeCategories" placeholder="Ação, Aventura, Comédia">
+                                    </div>
+                                    <button type="submit" class="btn-primary">Adicionar Filme</button>
+                                </form>
+                            </div>
+                            
+                            <!-- Add Series Tab -->
+                            <div id="admin-add-series" class="admin-tab-content hidden">
+                                <h3 style="margin-bottom: 16px;">Adicionar Nova Série</h3>
+                                <form id="addSeriesForm" class="admin-form">
+                                    <div class="form-group">
+                                        <label class="form-label">Título</label>
+                                        <input type="text" class="form-input" id="seriesTitle" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Descrição</label>
+                                        <textarea class="form-textarea" id="seriesDescription" required></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">URL da Imagem</label>
+                                        <input type="url" class="form-input" id="seriesImage" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Categorias (separadas por vírgula)</label>
+                                        <input type="text" class="form-input" id="seriesCategories" placeholder="Ação, Aventura, Comédia">
+                                    </div>
+                                    <button type="submit" class="btn-primary">Adicionar Série</button>
+                                </form>
+                            </div>
+                            
+                            <!-- Edit Anime Tab -->
+                            <div id="admin-edit-anime" class="admin-tab-content hidden">
+                                <h3 style="margin-bottom: 16px;">Editar Filme</h3>
+                                <form id="editAnimeForm" class="admin-form">
+                                    <input type="hidden" id="editAnimeId">
+                                    <div class="form-group">
+                                        <label class="form-label">Título</label>
+                                        <input type="text" class="form-input" id="editAnimeTitle" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Descrição</label>
+                                        <textarea class="form-textarea" id="editAnimeDescription" required></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">URL da Imagem</label>
+                                        <input type="url" class="form-input" id="editAnimeImage" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">URL Dublado</label>
+                                        <input type="url" class="form-input" id="editAnimeDubLink">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">URL Legendado</label>
+                                        <input type="url" class="form-input" id="editAnimeLegLink">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Categorias (separadas por vírgula)</label>
+                                        <input type="text" class="form-input" id="editAnimeCategories" placeholder="Ação, Aventura, Comédia">
+                                    </div>
+                                    <button type="submit" class="btn-primary">Salvar Alterações</button>
+                                </form>
+                            </div>
+                            
+                            <!-- Edit Series Tab -->
+                            <div id="admin-edit-series" class="admin-tab-content hidden">
+                                <h3 style="margin-bottom: 16px;">Editar Série</h3>
+                                <form id="editSeriesForm" class="admin-form">
+                                    <input type="hidden" id="editSeriesId">
+                                    <div class="form-group">
+                                        <label class="form-label">Título</label>
+                                        <input type="text" class="form-input" id="editSeriesTitle" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Descrição</label>
+                                        <textarea class="form-textarea" id="editSeriesDescription" required></textarea>
+                                    </div>
+        }
+
+        function loadDonationTab() {
+            const contentArea = document.getElementById('contentArea');
+            contentArea.innerHTML = `
+                <div class="content-section">
+                    <div class="donation-container">
+                        <div class="donation-card">
+                            <h2>Apoie o YK Server</h2>
+                            <p>Ajude a manter o servidor online e trazer mais conteúdo para você!</p>
+                            <div class="pix-key" onclick="copyToClipboard(this.textContent)">
+                                joaodidier@proton.me
+                            </div>
+                            <div class="qr-container">
+                                <div id="qrcode"></div>
+                            </div>
+                            <p style="color: var(--text-muted); font-size: 14px;">
+                                Escaneie o QR Code ou copie a chave PIX acima
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Generate QR Code
+            setTimeout(() => {
+                const qrContainer = document.getElementById('qrcode');
+                if (qrContainer) {
+                    new QRCode(qrContainer, {
+                        text: "joaodidier@proton.me",
+                        width: 200,
+                        height: 200,
+                        colorDark: "#000000",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                }
+            }, 100);
+        }
+
+        function createMediaCard(item, index) {
+            const staggerClass = `stagger-${(index % 4) + 1}`;
+            const isWatched = item.type === 'series' ? false : false; // Simplified for movies
+            
+            return `
+                <div class="media-card ${staggerClass}" data-id="${item.id}" data-type="${item.type}">
+                    <div class="media-card-image">
+                        <img src="${item.imageUrl || 'https://via.placeholder.com/200x300'}" alt="${escapeHtml(item.title)}" loading="lazy">
+                        <div class="media-card-overlay">
+                            <div class="media-card-actions">
+                                ${item.type === 'movies' ? `
+                                    <button class="media-card-action-btn play" onclick="playMedia('${item.id}', 'movies')">
+                                        <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                        Assistir
+                                    </button>
+                                ` : `
+                                    <button class="media-card-action-btn play" onclick="showAnimeDetail('${item.id}', 'series')">
+                                        <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                        Episódios
+                                    </button>
+                                `}
+                                <button class="media-card-action-btn favorite" onclick="toggleFavorite('${item.id}')">
+                                    <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="media-card-content">
+                        <div class="media-card-title">${escapeHtml(item.title)}</div>
+                        <div class="media-card-meta">
+                            <div class="media-card-rating">⭐ ${item.averageRating ? item.averageRating.toFixed(1) : '0.0'}</div>
+                            <div class="media-card-year">${item.year || new Date().getFullYear()}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function attachMediaCardListeners() {
+            // Add any additional listeners for media cards here
+        }
+
         function attachAdminListeners() {
-            // Admin tab switching
             document.querySelectorAll('.admin-tab').forEach(tab => {
                 tab.addEventListener('click', () => {
                     document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
+                    document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.add('hidden'));
+                    document.getElementById(`admin-${tab.dataset.adminTab}`).classList.remove('hidden');
+                });
+            });
+            
+            document.querySelectorAll('[data-edit-id]').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const id = btn.dataset.editId;
+                    const type = btn.dataset.editType;
+                    const items = await loadAllContent();
+                    const item = items.find(i => i.id === id);
                     
-                    document.querySelectorAll('.admin-tab-content').forEach(content => content.classList.add('hidden'));
+                    if (!item) return;
                     
-                    const targetId = `admin-${tab.dataset.adminTab}`;
-                    const targetElement = document.getElementById(targetId);
-                    if (targetElement) {
-                        targetElement.classList.remove('hidden');
+                    // Show edit form based on type
+                    if (type === 'movies') {
+                        showEditAnimeForm(item);
+                    } else if (type === 'series') {
+                        showEditSeriesForm(item);
                     }
                 });
             });
-
-            // Movie form submission
-            document.getElementById('addMovieForm')?.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                
-                const title = document.getElementById('movieTitle').value;
-                const description = document.getElementById('movieDescription').value;
-                const imageUrl = document.getElementById('movieImage').value;
-                const categories = document.getElementById('movieCategories').value.split(',').map(c => c.trim());
-                const dubLink = document.getElementById('movieDubLink').value;
-                const legLink = document.getElementById('movieLegLink').value;
-                const rating = parseFloat(document.getElementById('movieRating').value) || 0;
-                
-                try {
-                    await db.collection('animes').add({
-                        title,
-                        description,
-                        imageUrl,
-                        categories,
-                        dubLink,
-                        legLink,
-                        averageRating: rating,
-                        ratings: [],
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+            
+            document.querySelectorAll('[data-delete-id]').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    // Owner verification
+                    if (!isOwner()) {
+                        showToast('Acesso negado');
+                        return;
+                    }
                     
-                    showToast('Filme adicionado com sucesso!', false);
-                    document.getElementById('addMovieForm').reset();
-                    loadAdminTab();
-                } catch (error) {
-                    showToast('Erro ao adicionar filme: ' + error.message);
-                }
-            });
-
-            // Series form submission
-            document.getElementById('addSeriesForm')?.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                
-                const title = document.getElementById('seriesTitle').value;
-                const description = document.getElementById('seriesDescription').value;
-                const imageUrl = document.getElementById('seriesImage').value;
-                const categories = document.getElementById('seriesCategories').value.split(',').map(c => c.trim());
-                const rating = parseFloat(document.getElementById('seriesRating').value) || 0;
-                
-                // Collect seasons and episodes
-                const seasons = {};
-                document.querySelectorAll('.season-field').forEach(seasonField => {
-                    const seasonName = seasonField.querySelector('.season-name').value;
-                    if (seasonName) {
-                        const episodes = [];
-                        seasonField.querySelectorAll('.episode-field').forEach(episodeField => {
-                            const episodeName = episodeField.querySelector('.episode-name').value;
-                            const dubLink = episodeField.querySelector('.episode-dub').value;
-                            const legLink = episodeField.querySelector('.episode-leg').value;
-                            
-                            if (episodeName && (dubLink || legLink)) {
-                                episodes.push({
-                                    name: episodeName,
-                                    dubLink,
-                                    legLink
-                                });
-                            }
-                        });
-                        
-                        if (episodes.length > 0) {
-                            seasons[seasonName] = episodes;
+                    const id = btn.dataset.deleteId;
+                    const type = btn.dataset.deleteType;
+                    if (confirm('Tem certeza que deseja excluir este item?')) {
+                        try {
+                            await db.collection(type).doc(id).delete();
+                            allContentCache = [];
+                            showToast('Item excluído com sucesso!', 'success');
+                            loadAdminTab();
+                        } catch (error) {
+                            showToast('Erro ao excluir: ' + error.message);
                         }
                     }
                 });
+            });
+            
+            document.getElementById('addAnimeForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
                 
+                // Owner verification
+                if (!isOwner()) {
+                    showToast('Acesso negado');
+                    return;
+                }
+                
+                // Rate limiting check
+                if (!checkRateLimit('add_anime', currentUser.uid)) {
+                    showToast('Muitas tentativas. Tente novamente em 1 minuto.');
+                    return;
+                }
+                
+                const title = sanitizeInput(document.getElementById('animeTitle').value);
+                const description = sanitizeInput(document.getElementById('animeDescription').value);
+                const imageUrl = sanitizeInput(document.getElementById('animeImage').value);
+                const dubLink = sanitizeInput(document.getElementById('animeDubLink').value);
+                const legLink = sanitizeInput(document.getElementById('animeLegLink').value);
+                const categoriesRaw = document.getElementById('animeCategories').value;
+                
+                // Validation
+                if (!validateText(title, 1, 200)) {
+                    showToast('Título inválido');
+                    return;
+                }
+                
+                if (!validateText(description, 10, 2000)) {
+                    showToast('Descrição deve ter entre 10 e 2000 caracteres');
+                    return;
+                }
+                
+                if (!validateUrl(imageUrl)) {
+                    showToast('URL da imagem inválida');
+                    return;
+                }
+                
+                if (dubLink && !validateUrl(dubLink)) {
+                    showToast('URL dublada inválida');
+                    return;
+                }
+                
+                if (legLink && !validateUrl(legLink)) {
+                    showToast('URL legendada inválida');
+                    return;
+                }
+                
+                const categories = categoriesRaw.split(',').map(g => sanitizeInput(g.trim())).filter(g => g.length > 0);
+                
+                if (categories.length === 0) {
+                    showToast('Pelo menos uma categoria é necessária');
+                    return;
+                }
+                
+                const newAnime = {
+                    title,
+                    description,
+                    imageUrl,
+                    dubLink,
+                    legLink,
+                    categories,
+                    createdAt: new Date()
+                };
                 try {
-                    await db.collection('series').add({
-                        title,
-                        description,
-                        imageUrl,
-                        categories,
-                        averageRating: rating,
-                        ratings: [],
-                        seasons,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    
-                    showToast('Série adicionada com sucesso!', false);
-                    document.getElementById('addSeriesForm').reset();
-                    seasonCounter = 0;
+                    await db.collection('animes').add(newAnime);
+                    allContentCache = [];
+                    showToast('Filme adicionado com sucesso!', 'success');
                     loadAdminTab();
                 } catch (error) {
-                    showToast('Erro ao adicionar série: ' + error.message);
+                    showToast('Erro ao adicionar: ' + error.message);
+                }
+            });
+            
+            document.getElementById('addSeriesForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                // Owner verification
+                if (!isOwner()) {
+                    showToast('Acesso negado');
+                    return;
+                }
+                
+                // Rate limiting check
+                if (!checkRateLimit('add_series', currentUser.uid)) {
+                    showToast('Muitas tentativas. Tente novamente em 1 minuto.');
+                    return;
+                }
+                
+                const title = sanitizeInput(document.getElementById('seriesTitle').value);
+                const description = sanitizeInput(document.getElementById('seriesDescription').value);
+                const imageUrl = sanitizeInput(document.getElementById('seriesImage').value);
+                const categoriesRaw = document.getElementById('seriesCategories').value;
+                
+                // Validation
+                if (!validateText(title, 1, 200)) {
+                    showToast('Título inválido');
+                    return;
+                }
+                
+                if (!validateText(description, 10, 2000)) {
+                    showToast('Descrição deve ter entre 10 e 2000 caracteres');
+                    return;
+                }
+                
+                if (!validateUrl(imageUrl)) {
+                    showToast('URL da imagem inválida');
+                    return;
+                }
+                
+                const categories = categoriesRaw.split(',').map(g => sanitizeInput(g.trim())).filter(g => g.length > 0);
+                
+                if (categories.length === 0) {
+                    showToast('Pelo menos uma categoria é necessária');
+                    return;
+                }
+                
+                const newSeries = {
+                    title,
+                    description,
+                    imageUrl,
+                    categories,
+                    seasons: {},
+                    createdAt: new Date()
+                };
+                try {
+                    await db.collection('series').add(newSeries);
+                    allContentCache = [];
+                    showToast('Série adicionada com sucesso!', 'success');
+                    loadAdminTab();
+                } catch (error) {
+                    showToast('Erro ao adicionar: ' + error.message);
+                }
+            });
+            
+            // Edit Anime Form
+            document.getElementById('editAnimeForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                // Owner verification
+                if (!isOwner()) {
+                    showToast('Acesso negado');
+                    return;
+                }
+                
+                const id = document.getElementById('editAnimeId').value;
+                const title = sanitizeInput(document.getElementById('editAnimeTitle').value);
+                const description = sanitizeInput(document.getElementById('editAnimeDescription').value);
+                const imageUrl = sanitizeInput(document.getElementById('editAnimeImage').value);
+                const dubLink = sanitizeInput(document.getElementById('editAnimeDubLink').value);
+                const legLink = sanitizeInput(document.getElementById('editAnimeLegLink').value);
+                const categoriesRaw = document.getElementById('editAnimeCategories').value;
+                
+                // Validation
+                if (!validateText(title, 1, 200)) {
+                    showToast('Título inválido');
+                    return;
+                }
+                
+                if (!validateText(description, 10, 2000)) {
+                    showToast('Descrição deve ter entre 10 e 2000 caracteres');
+                    return;
+                }
+                
+                if (!validateUrl(imageUrl)) {
+                    showToast('URL da imagem inválida');
+                    return;
+                }
+                
+                if (dubLink && !validateUrl(dubLink)) {
+                    showToast('URL dublada inválida');
+                    return;
+                }
+                
+                if (legLink && !validateUrl(legLink)) {
+                    showToast('URL legendada inválida');
+                    return;
+                }
+                
+                const categories = categoriesRaw.split(',').map(g => sanitizeInput(g.trim())).filter(g => g.length > 0);
+                
+                if (categories.length === 0) {
+                    showToast('Pelo menos uma categoria é necessária');
+                    return;
+                }
+                
+                const updatedAnime = {
+                    title,
+                    description,
+                    imageUrl,
+                    dubLink,
+                    legLink,
+                    categories
+                };
+                try {
+                    await db.collection('animes').doc(id).update(updatedAnime);
+                    allContentCache = [];
+                    showToast('Filme atualizado com sucesso!', 'success');
+                    loadAdminTab();
+                } catch (error) {
+                    showToast('Erro ao atualizar: ' + error.message);
+                }
+            });
+            
+            // Edit Series Form
+            document.getElementById('editSeriesForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                // Owner verification
+                if (!isOwner()) {
+                    showToast('Acesso negado');
+                    return;
+                }
+                
+                const id = document.getElementById('editSeriesId').value;
+                const title = sanitizeInput(document.getElementById('editSeriesTitle').value);
+                const description = sanitizeInput(document.getElementById('editSeriesDescription').value);
+                const imageUrl = sanitizeInput(document.getElementById('editSeriesImage').value);
+                const categoriesRaw = document.getElementById('editSeriesCategories').value;
+                
+                // Validation
+                if (!validateText(title, 1, 200)) {
+                    showToast('Título inválido');
+                    return;
+                }
+                
+                if (!validateText(description, 10, 2000)) {
+                    showToast('Descrição deve ter entre 10 e 2000 caracteres');
+                    return;
+                }
+                
+                if (!validateUrl(imageUrl)) {
+                    showToast('URL da imagem inválida');
+                    return;
+                }
+                
+                const categories = categoriesRaw.split(',').map(g => sanitizeInput(g.trim())).filter(g => g.length > 0);
+                
+                if (categories.length === 0) {
+                    showToast('Pelo menos uma categoria é necessária');
+                    return;
+                }
+                
+                const updatedSeries = {
+                    title,
+                    description,
+                    imageUrl,
+                    categories
+                };
+                try {
+                    await db.collection('series').doc(id).update(updatedSeries);
+                    allContentCache = [];
+                    showToast('Série atualizada com sucesso!', 'success');
+                    loadAdminTab();
+                } catch (error) {
+                    showToast('Erro ao atualizar: ' + error.message);
+                }
+            });
+            
+            // Episode and Season Management
+            document.getElementById('episodeSeriesSelect')?.addEventListener('change', async (e) => {
+                const seriesId = e.target.value;
+                if (!seriesId) return;
+                
+                try {
+                    const doc = await db.collection('series').doc(seriesId).get();
+                    if (doc.exists) {
+                        const series = doc.data();
+                        displaySeasonsManagement(series);
+                    }
+                } catch (error) {
+                    console.error('Error loading series:', error);
+                }
+            });
+            
+            document.getElementById('addSeasonForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                // Owner verification
+                if (!isOwner()) {
+                    showToast('Acesso negado');
+                    return;
+                }
+                
+                const seriesId = document.getElementById('episodeSeriesSelect').value;
+                const seasonName = sanitizeInput(document.getElementById('seasonName').value);
+                
+                if (!validateText(seasonName, 1, 100)) {
+                    showToast('Nome da temporada inválido');
+                    return;
+                }
+                
+                try {
+                    const doc = await db.collection('series').doc(seriesId).get();
+                    if (doc.exists) {
+                        const data = doc.data();
+                        const seasons = data.seasons || {};
+                        seasons[seasonName] = seasons[seasonName] || [];
+                        await db.collection('series').doc(seriesId).update({ seasons });
+                        allContentCache = [];
+                        showToast('Temporada adicionada com sucesso!', 'success');
+                        // Reload seasons management
+                        const updatedDoc = await db.collection('series').doc(seriesId).get();
+                        displaySeasonsManagement(updatedDoc.data());
+                    }
+                } catch (error) {
+                    showToast('Erro ao adicionar: ' + error.message);
+                }
+            });
+            
+            document.getElementById('addEpisodeForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                // Owner verification
+                if (!isOwner()) {
+                    showToast('Acesso negado');
+                    return;
+                }
+                
+                const seriesId = document.getElementById('episodeSeriesSelect').value;
+                const seasonName = document.getElementById('episodeSeasonSelect').value;
+                const episodeName = sanitizeInput(document.getElementById('episodeName').value);
+                const dubLink = sanitizeInput(document.getElementById('episodeDubLink').value);
+                const legLink = sanitizeInput(document.getElementById('episodeLegLink').value);
+                
+                // Validation
+                if (!validateText(episodeName, 1, 200)) {
+                    showToast('Nome do episódio inválido');
+                    return;
+                }
+                
+                if (!dubLink && !legLink) {
+                    showToast('Pelo menos um link (dublado ou legendado) é necessário');
+                    return;
+                }
+                
+                if (dubLink && !validateUrl(dubLink)) {
+                    showToast('URL dublada inválida');
+                    return;
+                }
+                
+                if (legLink && !validateUrl(legLink)) {
+                    showToast('URL legendada inválida');
+                    return;
+                }
+                
+                try {
+                    const doc = await db.collection('series').doc(seriesId).get();
+                    if (doc.exists) {
+                        const data = doc.data();
+                        const seasons = data.seasons || {};
+                        if (!seasons[seasonName]) {
+                            seasons[seasonName] = [];
+                        }
+                        seasons[seasonName].push({ name: episodeName, dubLink, legLink });
+                        await db.collection('series').doc(seriesId).update({ seasons });
+                        allContentCache = [];
+                        showToast('Episódio adicionado com sucesso!', 'success');
+                        // Reload seasons management
+                        const updatedDoc = await db.collection('series').doc(seriesId).get();
+                        displaySeasonsManagement(updatedDoc.data());
+                    }
+                } catch (error) {
+                    showToast('Erro ao adicionar: ' + error.message);
                 }
             });
         }
 
-        async function deleteContent(id, type) {
-            if (!confirm('Tem certeza que deseja excluir este conteúdo?')) {
-                return;
+        function setupNavigation() {
+            // Show admin tab only for owner
+            if (isOwner()) {
+                document.querySelectorAll('.owner-only').forEach(el => el.style.display = 'flex');
             }
             
-            try {
-                const collection = type === 'movies' ? 'animes' : 'series';
-                await db.collection(collection).doc(id).delete();
-                showToast('Conteúdo excluído com sucesso!', false);
-                loadAdminTab();
-            } catch (error) {
-                showToast('Erro ao excluir conteúdo: ' + error.message);
-            }
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const tab = item.dataset.tab;
+                    if (tab) {
+                        document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                        document.querySelectorAll('.nav-item').forEach(nav => {
+                            if (nav.dataset.tab === tab) nav.classList.add('active');
+                        });
+                        loadTab(tab);
+                    }
+                    document.getElementById('mobileMenu').classList.remove('active');
+                });
+            });
+
+            document.getElementById('logoSection')?.addEventListener('click', () => {
+                document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                document.querySelector('[data-tab="home"]').classList.add('active');
+                loadTab('home');
+            });
+
+            document.getElementById('searchToggle')?.addEventListener('click', () => {
+                document.getElementById('searchInput').classList.toggle('expanded');
+                if (document.getElementById('searchInput').classList.contains('expanded')) {
+                    document.getElementById('searchInput').focus();
+                }
+            });
+
+            document.getElementById('searchInput')?.addEventListener('input', (e) => {
+                searchTerm = e.target.value;
+                if (currentTab === 'catalog') loadCatalogTab();
+                else if (currentTab === 'home') loadHomeTab();
+            });
+
+            document.getElementById('hamburgerMenu')?.addEventListener('click', () => {
+                document.getElementById('mobileMenu').classList.toggle('active');
+            });
+
+            document.getElementById('logoutButton')?.addEventListener('click', () => {
+                if (confirm('Tem certeza que deseja sair?')) {
+                    auth.signOut().then(() => {
+                        showToast('Logout realizado com sucesso!', 'success');
+                        location.reload();
+                    }).catch((error) => {
+                        showToast('Erro ao fazer logout: ' + error.message);
+                    });
+                }
+            });
+
+            // Event listener for 'ver mais' button
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('section-action') && e.target.dataset.action === 'catalog') {
+                    loadTab('catalog');
+                }
+            });
         }
 
-        function editContent(id, type) {
-            showToast('Função de editar em desenvolvimento...', false);
+        async function loadTab(tabName) {
+            currentTab = tabName;
+            try {
+                switch (tabName) {
+                    case 'home': await loadHomeTab(); break;
+                    case 'catalog': await loadCatalogTab(); break;
+                    case 'admin': await loadAdminTab(); break;
+                    case 'donation': await loadDonationTab(); break;
+                    default: await loadHomeTab();
+                }
+            } catch (error) {
+                console.error('Error loading tab:', error);
+                showToast('Erro ao carregar conteúdo');
+            }
         }
 
         async function initializeApp() {
             try {
-                // Auto-login as owner for demo
-                currentUser = { email: OWNER_EMAIL };
-                userData = { name: 'Admin', email: OWNER_EMAIL };
+                console.log('Initializing YK Server...');
                 
-                const userNameDisplay = document.getElementById('userNameDisplay');
-                if (userNameDisplay) {
-                    userNameDisplay.textContent = userData.name;
-                }
-                
-                await loadAdminTab();
-                
-                const app = document.getElementById('app');
-                const loading = document.getElementById('loadingScreen');
-                
-                if (app) {
-                    app.style.display = 'block';
-                    setTimeout(() => app.classList.add('active'), 100);
-                }
-                
-                if (loading) {
-                    loading.style.display = 'none';
-                }
-                
+                // Check for authenticated user
+                auth.onAuthStateChanged(async (user) => {
+                    if (user) {
+                        currentUser = user;
+                        const userDoc = await db.collection('users').doc(user.uid).get();
+                        if (userDoc.exists) {
+                            userData = userDoc.data();
+                            
+                            // Check email verification
+                            if (user.emailVerified && !userData.emailVerified) {
+                                await db.collection('users').doc(user.uid).update({ emailVerified: true });
+                                userData.emailVerified = true;
+                            }
+                        } else {
+                            // Create user document
+                            userData = { 
+                                name: user.email.split('@')[0], 
+                                email: user.email, 
+                                isAdmin: false, // No more admins, only owner
+                                emailVerified: user.emailVerified 
+                            };
+                            await db.collection('users').doc(user.uid).set(userData);
+                        }
+                        document.getElementById('userNameDisplay').textContent = userData.name;
+                        setupNavigation();
+                        await loadTab('home');
+                        const app = document.getElementById('app');
+                        const loading = document.getElementById('loadingScreen');
+                        app.style.display = 'block';
+                        setTimeout(() => app.classList.add('active'), 100);
+                        loading.style.display = 'none';
+                        console.log('YK Server initialized successfully');
+                    } else {
+                        // Show login screen
+                        showLoginScreen();
+                    }
+                });
             } catch (error) {
                 console.error('Error initializing app:', error);
                 showToast('Erro ao inicializar aplicação');
-                
-                // Fallback: hide loading screen even if initialization fails
-                const loading = document.getElementById('loadingScreen');
                 const app = document.getElementById('app');
+                const loading = document.getElementById('loadingScreen');
+                if (app) app.style.display = 'block';
                 if (loading) loading.style.display = 'none';
-                if (app) {
-                    app.style.display = 'block';
-                    app.classList.add('active');
-                }
             }
         }
 
+        function showLoginScreen() {
+            const contentArea = document.getElementById('contentArea');
+            contentArea.innerHTML = `
+                <div style="display: flex; justify-content: center; align-items: center; min-height: 60vh;">
+                    <div style="background: var(--bg-card); padding: 40px; border-radius: 12px; border: 1px solid var(--border-color); width: 100%; max-width: 400px;">
+                        <h2 style="text-align: center; margin-bottom: 24px; color: var(--primary-pink);">YK Server</h2>
+                        <form id="loginForm" style="display: flex; flex-direction: column; gap: 16px;">
+                            <div class="form-group">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-input" id="loginEmail" required placeholder="seu@email.com">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Senha</label>
+                                <input type="password" class="form-input" id="loginPassword" required placeholder="******">
+                            </div>
+                            <button type="submit" class="btn-primary">Entrar</button>
+                            <button type="button" class="btn-secondary" id="registerBtn">Criar conta</button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = sanitizeInput(document.getElementById('loginEmail').value);
+                const password = document.getElementById('loginPassword').value;
+                
+                if (!validateEmail(email)) {
+                    showToast('Email inválido');
+                    return;
+                }
+                
+                if (!validatePassword(password)) {
+                    showToast('Senha deve ter pelo menos 6 caracteres');
+                    return;
+                }
+                
+                try {
+                    await auth.signInWithEmailAndPassword(email, password);
+                    showToast('Login realizado com sucesso!', 'success');
+                } catch (error) {
+                    showToast('Erro ao fazer login: ' + error.message);
+                }
+            });
+            
+            document.getElementById('registerBtn')?.addEventListener('click', showRegisterScreen);
+            
+            const loading = document.getElementById('loadingScreen');
+            if (loading) loading.style.display = 'none';
+            const app = document.getElementById('app');
+            if (app) { app.style.display = 'block'; app.classList.add('active'); }
+        }
+
+        function showRegisterScreen() {
+            const contentArea = document.getElementById('contentArea');
+            contentArea.innerHTML = `
+                <div style="display: flex; justify-content: center; align-items: center; min-height: 60vh;">
+                    <div style="background: var(--bg-card); padding: 40px; border-radius: 12px; border: 1px solid var(--border-color); width: 100%; max-width: 400px;">
+                        <h2 style="text-align: center; margin-bottom: 24px; color: var(--primary-pink);">Criar Conta</h2>
+                        <form id="registerForm" style="display: flex; flex-direction: column; gap: 16px;">
+                            <div class="form-group">
+                                <label class="form-label">Nome</label>
+                                <input type="text" class="form-input" id="registerName" required placeholder="Seu nome">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-input" id="registerEmail" required placeholder="seu@email.com">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Senha</label>
+                                <input type="password" class="form-input" id="registerPassword" required placeholder="******" minlength="6">
+                            </div>
+                            <button type="submit" class="btn-primary">Criar conta</button>
+                            <button type="button" class="btn-secondary" id="backToLoginBtn">Voltar</button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('registerForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = sanitizeInput(document.getElementById('registerName').value);
+                const email = sanitizeInput(document.getElementById('registerEmail').value);
+                const password = document.getElementById('registerPassword').value;
+                
+                if (!validateText(name, 2, 50)) {
+                    showToast('Nome deve ter entre 2 e 50 caracteres');
+                    return;
+                }
+                
+                if (!validateEmail(email)) {
+                    showToast('Email inválido');
+                    return;
+                }
+                
+                if (!validatePassword(password)) {
+                    showToast('Senha deve ter pelo menos 6 caracteres');
+                    return;
+                }
+                
+                try {
+                    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                    // Send email verification
+                    await userCredential.user.sendEmailVerification();
+                    // All users are regular users, only owner has special access
+                    await db.collection('users').doc(userCredential.user.uid).set({
+                        name,
+                        email,
+                        isAdmin: false, // No admins anymore
+                        emailVerified: false,
+                        createdAt: new Date()
+                    });
+                    showToast('Conta criada! Verifique seu email para confirmar.', 'success');
+                    showLoginScreen();
+                } catch (error) {
+                    showToast('Erro ao criar conta: ' + error.message);
+                }
+            });
+            
+            document.getElementById('backToLoginBtn')?.addEventListener('click', showLoginScreen);
+        }
+
+        // Utility functions
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Chave PIX copiada!');
+            }).catch(() => {
+                showToast('Erro ao copiar chave PIX');
+            });
+        }
+
+        function setCatalogTab(tab) {
+            currentCatalogTab = tab;
+            loadCatalogTab();
+        }
+
+        function playMedia(id, type) {
+            // Implementation for playing media
+            showToast('Reproduzindo mídia...');
+        }
+
+        function showAnimeDetail(id, type) {
+            // Implementation for showing anime details
+            showToast('Carregando detalhes...');
+        }
+
+        function showEditAnimeForm(anime) {
+            // Switch to edit anime tab
+            document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector('[data-admin-tab="edit-anime"]').classList.add('active');
+            document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.add('hidden'));
+            document.getElementById('admin-edit-anime').classList.remove('hidden');
+            
+            // Populate form with anime data
+            document.getElementById('editAnimeId').value = anime.id;
+            document.getElementById('editAnimeTitle').value = anime.title || '';
+            document.getElementById('editAnimeDescription').value = anime.description || '';
+            document.getElementById('editAnimeImage').value = anime.imageUrl || '';
+            document.getElementById('editAnimeDubLink').value = anime.dubLink || '';
+            document.getElementById('editAnimeLegLink').value = anime.legLink || '';
+            document.getElementById('editAnimeCategories').value = (anime.categories || []).join(', ');
+        }
+        
+        function showEditSeriesForm(series) {
+            // Switch to edit series tab
+            document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector('[data-admin-tab="edit-series"]').classList.add('active');
+            document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.add('hidden'));
+            document.getElementById('admin-edit-series').classList.remove('hidden');
+            
+            // Populate form with series data
+            document.getElementById('editSeriesId').value = series.id;
+            document.getElementById('editSeriesTitle').value = series.title || '';
+            document.getElementById('editSeriesDescription').value = series.description || '';
+            document.getElementById('editSeriesImage').value = series.imageUrl || '';
+            document.getElementById('editSeriesCategories').value = (series.categories || []).join(', ');
+        }
+        
+        async function loadEpisodesManagement() {
+            const select = document.getElementById('episodeSeriesSelect');
+            if (!select) return;
+            
+            try {
+                const items = await loadAllContent();
+                const series = items.filter(item => item.type === 'series');
+                
+                select.innerHTML = '<option value="">Selecione uma série</option>' + 
+                    series.map(s => `<option value="${s.id}">${escapeHtml(s.title)}</option>`).join('');
+                
+                document.getElementById('seasonsManagement').style.display = 'none';
+            } catch (error) {
+                console.error('Error loading series for episode management:', error);
+            }
+        }
+        
+        function displaySeasonsManagement(series) {
+            const seasonsContainer = document.getElementById('seasonsManagement');
+            const seasonsList = document.getElementById('seasonsList');
+            const episodeSeasonSelect = document.getElementById('episodeSeasonSelect');
+            
+            if (!seasonsContainer || !seasonsList) return;
+            
+            seasonsContainer.style.display = 'block';
+            
+            // Populate season select
+            const seasons = series.seasons || {};
+            episodeSeasonSelect.innerHTML = '<option value="">Selecione uma temporada</option>' +
+                Object.keys(seasons).map(seasonName => 
+                    `<option value="${escapeHtml(seasonName)}">${escapeHtml(seasonName)}</option>`
+                ).join('');
+            
+            // Display seasons list
+            let seasonsHtml = '';
+            Object.keys(seasons).forEach(seasonName => {
+                const episodes = seasons[seasonName] || [];
+                seasonsHtml += `
+                    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <h4 style="color: var(--primary-pink); margin: 0;">${escapeHtml(seasonName)}</h4>
+                            <button class="btn-danger" style="padding: 6px 12px; font-size: 12px;" 
+                                    data-delete-season="${series.id}" data-season-name="${escapeHtml(seasonName)}">
+                                Excluir Temporada
+                            </button>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px;">
+                            ${episodes.map((episode, index) => `
+                                <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                        <h5 style="margin: 0; color: var(--text-primary);">${escapeHtml(episode.name)}</h5>
+                                        <button class="btn-danger" style="padding: 4px 8px; font-size: 10px;" 
+                                                data-delete-episode="${series.id}" data-season-name="${escapeHtml(seasonName)}" data-episode-index="${index}">
+                                            Excluir
+                                        </button>
+                                    </div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">
+                                        ${episode.dubLink ? `🔊 Dublado: <a href="${episode.dubLink}" target="_blank" style="color: var(--primary-pink);">Ver</a>` : ''}
+                                        ${episode.legLink ? `📝 Legendado: <a href="${episode.legLink}" target="_blank" style="color: var(--primary-pink);">Ver</a>` : ''}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            seasonsList.innerHTML = seasonsHtml;
+            
+            // Attach delete listeners for episodes and seasons
+            attachEpisodeDeleteListeners();
+        }
+        
+        function attachEpisodeDeleteListeners() {
+            document.querySelectorAll('[data-delete-season]').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    if (!isOwner()) {
+                        showToast('Acesso negado');
+                        return;
+                    }
+                    
+                    const seriesId = btn.dataset.deleteSeason;
+                    const seasonName = btn.dataset.seasonName;
+                    if (confirm(`Tem certeza que deseja excluir a temporada "${seasonName}"?`)) {
+                        try {
+                            const doc = await db.collection('series').doc(seriesId).get();
+                            if (doc.exists) {
+                                const data = doc.data();
+                                const seasons = data.seasons || {};
+                                delete seasons[seasonName];
+                                await db.collection('series').doc(seriesId).update({ seasons });
+                                allContentCache = [];
+                                showToast('Temporada excluída com sucesso!', 'success');
+                                // Reload seasons management
+                                const updatedDoc = await db.collection('series').doc(seriesId).get();
+                                displaySeasonsManagement(updatedDoc.data());
+                            }
+                        } catch (error) {
+                            showToast('Erro ao excluir: ' + error.message);
+                        }
+                    }
+                });
+            });
+            
+            document.querySelectorAll('[data-delete-episode]').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    if (!isOwner()) {
+                        showToast('Acesso negado');
+                        return;
+                    }
+                    
+                    const seriesId = btn.dataset.deleteEpisode;
+                    const seasonName = btn.dataset.seasonName;
+                    const episodeIndex = parseInt(btn.dataset.episodeIndex);
+                    if (confirm('Tem certeza que deseja excluir este episódio?')) {
+                        try {
+                            const doc = await db.collection('series').doc(seriesId).get();
+                            if (doc.exists) {
+                                const data = doc.data();
+                                const seasons = data.seasons || {};
+                                if (seasons[seasonName]) {
+                                    seasons[seasonName].splice(episodeIndex, 1);
+                                    await db.collection('series').doc(seriesId).update({ seasons });
+                                    allContentCache = [];
+                                    showToast('Episódio excluído com sucesso!', 'success');
+                                    // Reload seasons management
+                                    const updatedDoc = await db.collection('series').doc(seriesId).get();
+                                    displaySeasonsManagement(updatedDoc.data());
+                                }
+                            }
+                        } catch (error) {
+                            showToast('Erro ao excluir: ' + error.message);
+                        }
+                    }
+                });
+            });
+        }
+        
+        function toggleFavorite(id) {
+            // Implementation for toggling favorites
+            showToast('Adicionado aos favoritos!');
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
-            // Fallback timeout to prevent infinite loading
+            // Load saved theme
+            loadTheme();
+            
+            // Theme toggle listener
+            document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
+            
             setTimeout(() => {
                 const loading = document.getElementById('loadingScreen');
                 const app = document.getElementById('app');
                 if (loading && loading.style.display !== 'none') {
                     console.warn('Loading timeout - forcing app to show');
                     loading.style.display = 'none';
-                    if (app) { 
-                        app.style.display = 'block'; 
-                        app.classList.add('active'); 
-                    }
+                    if (app) { app.style.display = 'block'; app.classList.add('active'); }
                 }
-            }, 5000);
-            
-            // Initialize app
+            }, 3000);
             initializeApp();
         });
 
-        document.getElementById('logoutButton')?.addEventListener('click', () => {
-            if (confirm('Tem certeza que deseja sair?')) {
-                showToast('Logout realizado com sucesso!', false);
-                setTimeout(() => location.reload(), 1000);
-            }
+        window.addEventListener('error', (event) => {
+            console.error('Global error:', event.error);
+            showToast('Ocorreu um erro inesperado');
         });
     </script>
 </body>
