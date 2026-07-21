@@ -303,7 +303,6 @@
         }
         .form-input:focus { border-color:var(--ocean-glow); }
 
-        /* Footer fixo no fundo da página */
         .footer-wave {
             width: 100%;
             margin-top: 60px;
@@ -360,7 +359,6 @@
             <div id="contentArea"></div>
         </main>
 
-        <!-- Footer com onda sempre no final -->
         <div class="footer-wave">
             <svg viewBox="0 0 1440 120" preserveAspectRatio="none">
                 <path fill="rgba(6,182,212,0.15)" d="M0,64L48,69.3C96,75,192,85,288,80C384,75,480,53,576,42.7C672,32,768,32,864,42.7C960,53,1056,75,1152,74.7C1248,75,1344,53,1392,42.7L1440,32L1440,120L1392,120C1344,120,1248,120,1152,120C1056,120,960,120,864,120C768,120,672,120,576,120C480,120,384,120,288,120C192,120,96,120,48,120L0,120Z">
@@ -422,16 +420,20 @@
         </div>
     </div>
 
+    <!-- Player Nativo -->
     <div id="videoPlayerOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:10000;align-items:center;justify-content:center;flex-direction:column;">
         <div style="width:90%;max-width:1100px;">
-            <div style="position:relative;padding-bottom:56.25%;height:0;">
-                <iframe id="videoPlayer" style="position:absolute;top:0;left:0;width:100%;height:100%;border-radius:12px;" allowfullscreen></iframe>
+            <div style="position:relative; width:100%; max-height:80vh; background:#000; border-radius:12px; overflow:hidden; display:flex; align-items:center; justify-content:center; box-shadow:0 10px 40px rgba(0,0,0,0.8);">
+                <video id="videoPlayer" style="width:100%; max-height:80vh; outline:none;" controls preload="metadata">
+                    <source id="videoSource" src="" type="video/mp4">
+                    Seu navegador não suporta a reprodução deste vídeo.
+                </video>
             </div>
             <div style="display:flex;justify-content:space-between;margin-top:16px;">
-                <button onclick="closeVideoPlayer()" class="btn-primary">Fechar</button>
+                <button onclick="closeVideoPlayer()" class="btn-primary" style="background:linear-gradient(135deg,#ef4444,#b91c1c);">Fechar Vídeo</button>
                 <div id="episodeNav" style="display:none;gap:8px;">
                     <button onclick="prevEpisode()" class="btn-outline">Anterior</button>
-                    <span id="epIndicator" style="padding:8px;color:#fff;"></span>
+                    <span id="epIndicator" style="padding:8px;color:#fff;font-weight:600;"></span>
                     <button onclick="nextEpisode()" class="btn-outline">Próximo</button>
                 </div>
             </div>
@@ -439,6 +441,7 @@
     </div>
 
     <script>
+        // Configuração Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyCTnC0RGSWRcr2ehQGimK6nIra9H8NH8Ks",
             authDomain: "yk-comunidade.firebaseapp.com",
@@ -451,6 +454,7 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
+        // Variáveis globais
         let currentUser = null;
         let allContent = [];
         let filteredContent = [];
@@ -459,10 +463,10 @@
         const OWNER_EMAIL = 'didierre@proton.me';
         let heroInterval = null;
         let carouselItems = [];
-
         let myList = [];
         let continueWatching = [];
 
+        // ========== FUNÇÕES DE DADOS LOCAIS ==========
         function loadUserData() {
             if (currentUser) {
                 const data = localStorage.getItem(`lt_userdata_${currentUser.uid}`);
@@ -521,6 +525,7 @@
             });
         }
 
+        // ========== EFEITOS ==========
         function createBubbles() {
             const container = document.getElementById('bubblesContainer');
             if (!container) return;
@@ -550,8 +555,8 @@
             }
         }
 
+        // ========== SOM ==========
         let audioCtx = null;
-
         function playBubbleSound() {
             if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
             const osc = audioCtx.createOscillator();
@@ -576,21 +581,6 @@
             osc.stop(audioCtx.currentTime + 0.2);
         }
 
-        function playTypingSound() {
-            if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.type = 'sine';
-            const now = audioCtx.currentTime;
-            osc.frequency.setValueAtTime(800 + Math.random() * 400, now);
-            gain.gain.setValueAtTime(0.08, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-            osc.start(now);
-            osc.stop(now + 0.05);
-        }
-
         document.addEventListener('click', function(e) {
             const btn = e.target.closest('button');
             if (btn) {
@@ -607,12 +597,6 @@
             }
         });
 
-        document.addEventListener('input', function(e) {
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-                playTypingSound();
-            }
-        });
-
         function showToast(msg, type = 'info') {
             const t = document.createElement('div');
             t.className = `toast ${type}`;
@@ -626,6 +610,7 @@
         function showLoading() { document.getElementById('loadingScreen').style.display = 'flex'; document.getElementById('app').style.display = 'none'; }
         function hideLoading() { document.getElementById('loadingScreen').style.display = 'none'; document.getElementById('app').style.display = 'block'; }
 
+        // ========== FIRESTORE ==========
         async function loadAllContent() {
             const [aSnap, sSnap] = await Promise.all([db.collection('animes').get(), db.collection('series').get()]);
             const items = [];
@@ -634,6 +619,7 @@
             return items;
         }
 
+        // ========== RENDERIZAÇÃO ==========
         function observeCards() {
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
@@ -682,15 +668,17 @@
         function makeCard(item) {
             return `
             <div class="card" onclick="openModalById('${item.id}')">
-            <img src="${item.imageUrl || 'https://via.placeholder.com/400x600'}" class="card-img" alt="${esc(item.title)}">
-            <div class="card-body">
-            <div class="card-title">${esc(item.title)}</div>
-            <div class="card-description">${esc(item.description || 'Sem descrição.')}</div>
-            <div class="card-meta"><span class="card-type">${item.type==='movie'?'Filme':'Série'}</span></div>
-            <div class="card-actions" onclick="event.stopPropagation();">
-            <button class="btn-card-action ${myList.includes(item.id)?'active-action':''}" data-mylist-btn="${item.id}" onclick="addToMyList('${item.id}')">${myList.includes(item.id)?'Na Lista':'+ Lista'}</button>
-            <button class="btn-card-action ${continueWatching.includes(item.id)?'active-action':''}" data-continue-btn="${item.id}" onclick="addToContinueWatching('${item.id}')">${continueWatching.includes(item.id)?'Continuando':'+ Continuar'}</button>
-            </div></div></div>`;
+                <img src="${item.imageUrl || 'https://via.placeholder.com/400x600'}" class="card-img" alt="${esc(item.title)}">
+                <div class="card-body">
+                    <div class="card-title">${esc(item.title)}</div>
+                    <div class="card-description">${esc(item.description || 'Sem descrição.')}</div>
+                    <div class="card-meta"><span class="card-type">${item.type==='movie'?'Filme':'Série'}</span></div>
+                    <div class="card-actions" onclick="event.stopPropagation();">
+                        <button class="btn-card-action ${myList.includes(item.id)?'active-action':''}" data-mylist-btn="${item.id}" onclick="addToMyList('${item.id}')">${myList.includes(item.id)?'Na Lista':'+ Lista'}</button>
+                        <button class="btn-card-action ${continueWatching.includes(item.id)?'active-action':''}" data-continue-btn="${item.id}" onclick="addToContinueWatching('${item.id}')">${continueWatching.includes(item.id)?'Continuando':'+ Continuar'}</button>
+                    </div>
+                </div>
+            </div>`;
         }
 
         function renderHome() {
@@ -699,19 +687,19 @@
             carouselItems = allContent.length ? allContent.sort(() => 0.5 - Math.random()).slice(0,5) : [];
             const heroHTML = carouselItems.length ? `
             <div class="hero-carousel">
-            ${carouselItems.map((item,i) => `<div class="hero-slide ${i===0?'active':''}" style="background-image:url('${item.imageUrl||'https://via.placeholder.com/1400x600'}');"></div>`).join('')}
-            <div class="hero-overlay"></div>
-            <div class="hero-content">
-            <h1 class="hero-title">${carouselItems[0].title}</h1>
-            <p class="hero-subtitle">${carouselItems[0].type==='movie'?'Filme':'Série'}</p>
-            <p class="hero-description">${carouselItems[0].description||''}</p>
-            <button class="btn-primary" onclick="switchTab('catalog')">Assistir Agora</button>
-            </div>
-            <div class="hero-nav">${carouselItems.map((_,i) => `<div class="hero-dot ${i===0?'active':''}"></div>`).join('')}</div>
+                ${carouselItems.map((item,i) => `<div class="hero-slide ${i===0?'active':''}" style="background-image:url('${item.imageUrl||'https://via.placeholder.com/1400x600'}');"></div>`).join('')}
+                <div class="hero-overlay"></div>
+                <div class="hero-content">
+                    <h1 class="hero-title">${carouselItems[0].title}</h1>
+                    <p class="hero-subtitle">${carouselItems[0].type==='movie'?'Filme':'Série'}</p>
+                    <p class="hero-description">${carouselItems[0].description||''}</p>
+                    <button class="btn-primary" onclick="switchTab('catalog')">Assistir Agora</button>
+                </div>
+                <div class="hero-nav">${carouselItems.map((_,i) => `<div class="hero-dot ${i===0?'active':''}"></div>`).join('')}</div>
             </div>` : `
             <div class="hero-carousel" style="background:linear-gradient(135deg,var(--ocean-blue),var(--ocean-dark));">
-            <div class="hero-overlay"></div>
-            <div class="hero-content"><h1 class="hero-title">LT Server</h1><p class="hero-subtitle">Os melhores animes e séries em um só lugar.</p><p class="hero-description"></p><button class="btn-primary" onclick="switchTab('catalog')">Assistir Agora</button></div>
+                <div class="hero-overlay"></div>
+                <div class="hero-content"><h1 class="hero-title">LT Server</h1><p class="hero-subtitle">Os melhores animes e séries em um só lugar.</p><p class="hero-description"></p><button class="btn-primary" onclick="switchTab('catalog')">Assistir Agora</button></div>
             </div>`;
             area.innerHTML = `${heroHTML}<h2 class="section-title">Adicionados Recentemente</h2><div class="content-grid">${recent.map(makeCard).join('')}</div>`;
             if (carouselItems.length) startHeroCarousel();
@@ -725,10 +713,10 @@
             <h1 style="font-size:36px;font-weight:900;text-align:center;margin-bottom:24px;">Catálogo</h1>
             <div class="search-box"><input type="text" id="searchInput" placeholder="Buscar..." oninput="filterCatalog(this.value)"></div>
             <div class="filters">
-            <button class="filter-btn active" onclick="setFilter('all')">Todos</button>
-            <button class="filter-btn" onclick="setFilter('movie')">Filmes</button>
-            <button class="filter-btn" onclick="setFilter('series')">Séries</button>
-            ${genres.map(g => `<button class="filter-btn" onclick="setFilter('${g}')">${esc(g)}</button>`).join('')}
+                <button class="filter-btn active" onclick="setFilter('all')">Todos</button>
+                <button class="filter-btn" onclick="setFilter('movie')">Filmes</button>
+                <button class="filter-btn" onclick="setFilter('series')">Séries</button>
+                ${genres.map(g => `<button class="filter-btn" onclick="setFilter('${g}')">${esc(g)}</button>`).join('')}
             </div>
             <div id="catalogGrid" class="content-grid"></div>`;
             filteredContent = [...allContent];
@@ -777,6 +765,49 @@
             observeCards();
         }
 
+        // ========== PLAYER NATIVO ==========
+        function openVideoPlayer(videoUrl) {
+            if (!videoUrl) return;
+            const overlay = document.getElementById('videoPlayerOverlay');
+            const video = document.getElementById('videoPlayer');
+            const source = document.getElementById('videoSource');
+            source.src = videoUrl;
+            video.load();
+            video.play().catch(e => console.log('Autoplay bloqueado'));
+            overlay.style.display = 'flex';
+            document.getElementById('episodeNav').style.display = 'none';
+        }
+
+        function closeVideoPlayer() {
+            const overlay = document.getElementById('videoPlayerOverlay');
+            const video = document.getElementById('videoPlayer');
+            const source = document.getElementById('videoSource');
+            video.pause();
+            source.src = '';
+            video.load();
+            overlay.style.display = 'none';
+            currentEpisodes = [];
+        }
+
+        function prevEpisode() {
+            if (currentEpisodeIndex > 0) {
+                currentEpisodeIndex--;
+                const ep = currentEpisodes[currentEpisodeIndex];
+                openVideoPlayer(ep.videoUrl);
+                document.getElementById('epIndicator').textContent = `${currentEpisodeIndex+1}/${currentEpisodes.length}`;
+            }
+        }
+
+        function nextEpisode() {
+            if (currentEpisodeIndex < currentEpisodes.length-1) {
+                currentEpisodeIndex++;
+                const ep = currentEpisodes[currentEpisodeIndex];
+                openVideoPlayer(ep.videoUrl);
+                document.getElementById('epIndicator').textContent = `${currentEpisodeIndex+1}/${currentEpisodes.length}`;
+            }
+        }
+
+        // ========== MODAIS ==========
         function openModalById(id) {
             const item = allContent.find(i => i.id === id);
             if (!item) return;
@@ -786,45 +817,57 @@
                 body.innerHTML = `
                 <img src="${item.imageUrl}" style="width:100%;max-height:350px;object-fit:cover;border-radius:12px;margin-bottom:16px;">
                 <p style="color:var(--text-secondary);margin-bottom:12px;">${esc(item.description||'Sem descrição.')}</p>
-                <div style="display:flex;gap:10px;margin-bottom:16px;">${item.dubLink?`<button class="btn-primary" onclick="play('${item.dubLink}')">Dublado</button>`:''}${item.legLink?`<button class="btn-primary" onclick="play('${item.legLink}')">Legendado</button>`:''}</div>
-                <div style="display:flex;gap:8px;"><button class="btn-outline ${myList.includes(id)?'active-action':''}" onclick="addToMyList('${id}');closeModal();">${myList.includes(id)?'Na Lista':'+ Minha Lista'}</button><button class="btn-outline ${continueWatching.includes(id)?'active-action':''}" onclick="addToContinueWatching('${id}');closeModal();">${continueWatching.includes(id)?'Continuando':'+ Continuar Vendo'}</button></div>`;
+                <button class="btn-primary" onclick="playMovie('${item.id}')">▶ Assistir</button>
+                <div style="display:flex;gap:8px;margin-top:12px;">
+                    <button class="btn-outline ${myList.includes(id)?'active-action':''}" onclick="addToMyList('${id}');closeModal();">${myList.includes(id)?'Na Lista':'+ Lista'}</button>
+                    <button class="btn-outline ${continueWatching.includes(id)?'active-action':''}" onclick="addToContinueWatching('${id}');closeModal();">${continueWatching.includes(id)?'Continuando':'+ Continuar'}</button>
+                </div>`;
             } else {
-                let eps = '';
+                let epsHtml = '';
                 if (item.seasons) {
-                    Object.entries(item.seasons).forEach(([sn, episodes]) => {
-                        eps += `<h4 style="margin-top:16px;color:var(--text-primary);border-bottom:1px solid var(--border-color);padding-bottom:4px;">${esc(sn)}</h4>`;
-                        episodes.forEach(ep => { eps += `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--input-bg);margin:4px 0;border-radius:8px;"><span>${esc(ep.name)}</span><div style="display:flex;gap:6px;">${ep.dubLink?`<button class="btn-outline" onclick="play('${ep.dubLink}','${sn}','${esc(ep.name)}')">Dublado</button>`:''}${ep.legLink?`<button class="btn-outline" onclick="play('${ep.legLink}','${sn}','${esc(ep.name)}')">Legendado</button>`:''}</div></div>`; });
+                    Object.entries(item.seasons).forEach(([season, episodes]) => {
+                        epsHtml += `<h4 style="margin-top:16px;color:var(--text-primary);border-bottom:1px solid var(--border-color);padding-bottom:4px;">${esc(season)}</h4>`;
+                        episodes.forEach(ep => {
+                            epsHtml += `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--input-bg);margin:4px 0;border-radius:8px;">
+                                <span>${esc(ep.name)}</span>
+                                <button class="btn-outline" onclick="playEpisode('${ep.videoUrl}','${season}','${esc(ep.name)}')">▶ Assistir</button>
+                            </div>`;
+                        });
                     });
                 }
                 body.innerHTML = `
                 <img src="${item.imageUrl}" style="width:100%;max-height:350px;object-fit:cover;border-radius:12px;margin-bottom:16px;">
-                <p style="color:var(--text-secondary);margin-bottom:12px;">${esc(item.description||'Sem descrição.')}</p>
-                <div style="display:flex;gap:8px;margin-bottom:16px;"><button class="btn-outline ${myList.includes(id)?'active-action':''}" onclick="addToMyList('${id}');closeModal();">${myList.includes(id)?'Na Lista':'+ Minha Lista'}</button><button class="btn-outline ${continueWatching.includes(id)?'active-action':''}" onclick="addToContinueWatching('${id}');closeModal();">${continueWatching.includes(id)?'Continuando':'+ Continuar Vendo'}</button></div>
-                ${eps||'<p style="color:var(--text-muted);">Nenhum episódio disponível.</p>'}`;
+                <p style="color:var(--text-secondary);margin-bottom:12px;">${esc(item.description||'')}</p>
+                <div style="display:flex;gap:8px;margin-bottom:16px;">
+                    <button class="btn-outline ${myList.includes(id)?'active-action':''}" onclick="addToMyList('${id}');closeModal();">${myList.includes(id)?'Na Lista':'+ Lista'}</button>
+                    <button class="btn-outline ${continueWatching.includes(id)?'active-action':''}" onclick="addToContinueWatching('${id}');closeModal();">${continueWatching.includes(id)?'Continuando':'+ Continuar'}</button>
+                </div>
+                ${epsHtml || '<p style="color:var(--text-muted);">Nenhum episódio disponível.</p>'}`;
             }
             document.getElementById('contentModal').classList.add('active');
         }
 
-        function closeModal() { document.getElementById('contentModal').classList.remove('active'); }
+        function playMovie(movieId) {
+            const movie = allContent.find(i => i.id === movieId);
+            if (movie && movie.videoUrl) openVideoPlayer(movie.videoUrl);
+            else showToast('Vídeo não disponível', 'error');
+        }
 
-        function play(url, season, epName) {
-            document.getElementById('videoPlayerOverlay').style.display = 'flex';
-            document.getElementById('videoPlayer').src = url;
-            if (season && epName) {
-                const series = allContent.find(i => i.type === 'series' && i.seasons);
-                if (series) {
-                    currentEpisodes = Object.values(series.seasons).flat();
-                    currentEpisodeIndex = currentEpisodes.findIndex(e => e.name === epName);
-                    document.getElementById('episodeNav').style.display = 'flex';
-                    document.getElementById('epIndicator').textContent = `${currentEpisodeIndex+1}/${currentEpisodes.length}`;
-                }
+        function playEpisode(videoUrl, season, epName) {
+            openVideoPlayer(videoUrl);
+            const series = allContent.find(i => i.type === 'series' && i.seasons);
+            if (series) {
+                const allEps = Object.values(series.seasons).flat();
+                currentEpisodes = allEps;
+                currentEpisodeIndex = allEps.findIndex(e => e.name === epName && e.videoUrl === videoUrl);
+                document.getElementById('episodeNav').style.display = 'flex';
+                document.getElementById('epIndicator').textContent = `${currentEpisodeIndex+1}/${currentEpisodes.length}`;
             }
         }
 
-        function closeVideoPlayer() { document.getElementById('videoPlayerOverlay').style.display = 'none'; document.getElementById('videoPlayer').src = ''; }
-        function nextEpisode() { if (currentEpisodeIndex < currentEpisodes.length-1) { currentEpisodeIndex++; const ep = currentEpisodes[currentEpisodeIndex]; play(ep.dubLink || ep.legLink, '', ep.name); } }
-        function prevEpisode() { if (currentEpisodeIndex > 0) { currentEpisodeIndex--; const ep = currentEpisodes[currentEpisodeIndex]; play(ep.dubLink || ep.legLink, '', ep.name); } }
+        function closeModal() { document.getElementById('contentModal').classList.remove('active'); }
 
+        // ========== AUTENTICAÇÃO ==========
         function showLoginForm() { document.getElementById('loginForm').style.display = 'block'; document.getElementById('registerForm').style.display = 'none'; }
         function showRegisterForm() { document.getElementById('loginForm').style.display = 'none'; document.getElementById('registerForm').style.display = 'block'; }
         function showLoginModal() { document.getElementById('loginModal').classList.add('active'); }
@@ -882,7 +925,7 @@
             }
         }
 
-        // ===== ADMIN FUNCTIONS =====
+        // ========== ADMIN ==========
         async function loadAdmin() {
             if (currentUser?.email !== OWNER_EMAIL) { document.getElementById('contentArea').innerHTML = '<p style="text-align:center;padding:60px;">Acesso restrito ao proprietário.</p>'; return; }
             const items = await loadAllContent();
@@ -891,14 +934,14 @@
             const series = items.filter(i => i.type === 'series');
             document.getElementById('contentArea').innerHTML = `
             <div style="background:var(--surface-bg);border-radius:16px;padding:24px;border:1px solid var(--border-color);">
-            <h2 style="margin-bottom:16px;">Painel Admin</h2>
-            <button class="btn-primary" onclick="addMovieForm()" style="margin-right:10px;">+ Filme</button>
-            <button class="btn-primary" onclick="addSeriesForm()">+ Série</button>
-            <div id="adminFormContainer" style="margin-top:20px;"></div>
-            <h3 style="margin-top:30px;">Filmes (${movies.length})</h3>
-            ${movies.map(i => `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--input-bg);margin:4px 0;border-radius:6px;"><span>${esc(i.title)}</span><div><button class="btn-outline" onclick="openEditModal('${i.id}','movie')">Editar</button><button class="btn-outline" style="margin-left:6px;" onclick="deleteContent('${i.id}','movie')">Excluir</button></div></div>`).join('')}
-            <h3 style="margin-top:20px;">Séries (${series.length})</h3>
-            ${series.map(i => `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--input-bg);margin:4px 0;border-radius:6px;"><span>${esc(i.title)}</span><div><button class="btn-outline" onclick="openEditModal('${i.id}','series')">Editar</button><button class="btn-outline" style="margin-left:6px;" onclick="deleteContent('${i.id}','series')">Excluir</button></div></div>`).join('')}
+                <h2 style="margin-bottom:16px;">Painel Admin</h2>
+                <button class="btn-primary" onclick="addMovieForm()" style="margin-right:10px;">+ Filme</button>
+                <button class="btn-primary" onclick="addSeriesForm()">+ Série</button>
+                <div id="adminFormContainer" style="margin-top:20px;"></div>
+                <h3 style="margin-top:30px;">Filmes (${movies.length})</h3>
+                ${movies.map(i => `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--input-bg);margin:4px 0;border-radius:6px;"><span>${esc(i.title)}</span><div><button class="btn-outline" onclick="openEditModal('${i.id}','movie')">Editar</button><button class="btn-outline" style="margin-left:6px;" onclick="deleteContent('${i.id}','movie')">Excluir</button></div></div>`).join('')}
+                <h3 style="margin-top:20px;">Séries (${series.length})</h3>
+                ${series.map(i => `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--input-bg);margin:4px 0;border-radius:6px;"><span>${esc(i.title)}</span><div><button class="btn-outline" onclick="openEditModal('${i.id}','series')">Editar</button><button class="btn-outline" style="margin-left:6px;" onclick="deleteContent('${i.id}','series')">Excluir</button></div></div>`).join('')}
             </div>`;
         }
 
@@ -908,21 +951,23 @@
             <div class="form-group"><label>Título</label><input id="movTitle" class="form-input"></div>
             <div class="form-group"><label>Descrição</label><textarea id="movDesc" class="form-textarea"></textarea></div>
             <div class="form-group"><label>Imagem URL</label><input id="movImg" class="form-input"></div>
-            <div class="form-group"><label>Categorias</label><input id="movCat" class="form-input" placeholder="Ação, Drama"></div>
-            <div class="form-group"><label>Dublado URL</label><input id="movDub" class="form-input"></div>
-            <div class="form-group"><label>Legendado URL</label><input id="movLeg" class="form-input"></div>
-            <button class="btn-primary" onclick="submitMovie()">Salvar</button>`;
+            <div class="form-group"><label>Categorias (separadas por vírgula)</label><input id="movCat" class="form-input" placeholder="Ação, Drama"></div>
+            <div class="form-group"><label>Link do Vídeo (URL direta .mp4)</label><input id="movVideoUrl" class="form-input" placeholder="https://..."></div>
+            <button class="btn-primary" onclick="submitMovie()">Salvar Filme</button>`;
         }
 
         async function submitMovie() {
+            const title = document.getElementById('movTitle').value.trim();
+            const videoUrl = document.getElementById('movVideoUrl').value.trim();
+            if (!title || !videoUrl) return showToast('Título e link do vídeo são obrigatórios', 'error');
             await db.collection('animes').add({
-                title: document.getElementById('movTitle').value,
+                title,
                 description: document.getElementById('movDesc').value,
                 imageUrl: document.getElementById('movImg').value,
                 categories: document.getElementById('movCat').value.split(',').map(s => s.trim()),
-                dubLink: document.getElementById('movDub').value,
-                legLink: document.getElementById('movLeg').value,
-                averageRating: 0, ratings: [],
+                videoUrl,
+                averageRating: 0,
+                ratings: [],
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
             showToast('Filme adicionado!', 'success');
@@ -936,24 +981,77 @@
             <div class="form-group"><label>Descrição</label><textarea id="serDesc" class="form-textarea"></textarea></div>
             <div class="form-group"><label>Imagem URL</label><input id="serImg" class="form-input"></div>
             <div class="form-group"><label>Categorias</label><input id="serCat" class="form-input"></div>
-            <div class="form-group"><label>Temporada</label><input id="serSeason" class="form-input" value="Temporada 1"></div>
-            <div class="form-group"><label>Episódio</label><input id="serEpName" class="form-input" value="Episódio 1"></div>
-            <div class="form-group"><label>Dublado URL</label><input id="serEpDub" class="form-input"></div>
-            <div class="form-group"><label>Legendado URL</label><input id="serEpLeg" class="form-input"></div>
-            <button class="btn-primary" onclick="submitSeries()">Salvar</button>`;
+            <div id="seasonsContainer">
+                <div class="season-block" style="background:var(--card-bg);padding:12px;border-radius:8px;margin-bottom:10px;">
+                    <input class="form-input season-name" value="Temporada 1" style="margin-bottom:8px;">
+                    <div class="episodes-list">
+                        <div class="episode-row" style="display:flex;gap:8px;margin-bottom:6px;">
+                            <input class="form-input ep-name" placeholder="Episódio 1" style="flex:1;">
+                            <input class="form-input ep-url" placeholder="Link do vídeo" style="flex:2;">
+                            <button class="btn-outline" onclick="this.parentElement.remove()">×</button>
+                        </div>
+                    </div>
+                    <button class="btn-outline" onclick="addEpisodeToSeason(this)">+ Episódio</button>
+                </div>
+            </div>
+            <button class="btn-outline" onclick="addSeason()" style="margin-top:10px;">+ Nova Temporada</button>
+            <button class="btn-primary" onclick="submitSeries()" style="margin-top:20px;">Salvar Série</button>`;
         }
 
+        window.addEpisodeToSeason = function(btn) {
+            const list = btn.parentElement.querySelector('.episodes-list');
+            const row = document.createElement('div');
+            row.className = 'episode-row';
+            row.style.cssText = 'display:flex;gap:8px;margin-bottom:6px;';
+            row.innerHTML = `
+                <input class="form-input ep-name" placeholder="Nome do episódio" style="flex:1;">
+                <input class="form-input ep-url" placeholder="Link do vídeo" style="flex:2;">
+                <button class="btn-outline" onclick="this.parentElement.remove()">×</button>`;
+            list.appendChild(row);
+        };
+
+        window.addSeason = function() {
+            const container = document.getElementById('seasonsContainer');
+            const block = document.createElement('div');
+            block.className = 'season-block';
+            block.style.cssText = 'background:var(--card-bg);padding:12px;border-radius:8px;margin-bottom:10px;';
+            block.innerHTML = `
+                <input class="form-input season-name" value="Nova Temporada" style="margin-bottom:8px;">
+                <div class="episodes-list">
+                    <div class="episode-row" style="display:flex;gap:8px;margin-bottom:6px;">
+                        <input class="form-input ep-name" placeholder="Episódio 1" style="flex:1;">
+                        <input class="form-input ep-url" placeholder="Link do vídeo" style="flex:2;">
+                        <button class="btn-outline" onclick="this.parentElement.remove()">×</button>
+                    </div>
+                </div>
+                <button class="btn-outline" onclick="addEpisodeToSeason(this)">+ Episódio</button>`;
+            container.appendChild(block);
+        };
+
         async function submitSeries() {
-            const season = document.getElementById('serSeason').value;
-            const epName = document.getElementById('serEpName').value;
+            const title = document.getElementById('serTitle').value.trim();
+            if (!title) return showToast('Título obrigatório', 'error');
             const seasons = {};
-            seasons[season] = [{ name: epName, dubLink: document.getElementById('serEpDub').value, legLink: document.getElementById('serEpLeg').value }];
+            document.querySelectorAll('.season-block').forEach(block => {
+                const seasonName = block.querySelector('.season-name').value.trim();
+                if (!seasonName) return;
+                const episodes = [];
+                block.querySelectorAll('.episode-row').forEach(row => {
+                    const name = row.querySelector('.ep-name').value.trim();
+                    const url = row.querySelector('.ep-url').value.trim();
+                    if (name && url) episodes.push({ name, videoUrl: url });
+                });
+                if (episodes.length) seasons[seasonName] = episodes;
+            });
+            if (Object.keys(seasons).length === 0) return showToast('Adicione pelo menos um episódio com link', 'error');
             await db.collection('series').add({
-                title: document.getElementById('serTitle').value,
+                title,
                 description: document.getElementById('serDesc').value,
                 imageUrl: document.getElementById('serImg').value,
                 categories: document.getElementById('serCat').value.split(',').map(s => s.trim()),
-                seasons, averageRating: 0, ratings: [],
+                seasons,
+                averageRating: 0,
+                ratings: [],
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
             showToast('Série adicionada!', 'success');
@@ -967,45 +1065,40 @@
             loadAdmin();
         }
 
-        // ===== EDIÇÃO COMPLETA =====
+        // ========== EDIÇÃO (ADMIN) ==========
         async function openEditModal(id, type) {
             const col = type === 'movie' ? 'animes' : 'series';
             const doc = await db.collection(col).doc(id).get();
             if (!doc.exists) { showToast('Conteúdo não encontrado.', 'error'); return; }
             const data = doc.data();
-            const modal = document.getElementById('editModal');
             document.getElementById('editModalTitle').textContent = `Editar ${type === 'movie' ? 'Filme' : 'Série'}`;
             const body = document.getElementById('editModalBody');
-
             if (type === 'movie') {
                 body.innerHTML = `
                 <div class="form-group"><label>Título</label><input id="editTitle" class="form-input" value="${esc(data.title)}"></div>
                 <div class="form-group"><label>Descrição</label><textarea id="editDesc" class="form-textarea">${esc(data.description||'')}</textarea></div>
                 <div class="form-group"><label>Imagem URL</label><input id="editImg" class="form-input" value="${esc(data.imageUrl)}"></div>
                 <div class="form-group"><label>Categorias</label><input id="editCat" class="form-input" value="${esc((data.categories||[]).join(', '))}"></div>
-                <div class="form-group"><label>Dublado URL</label><input id="editDub" class="form-input" value="${esc(data.dubLink||'')}"></div>
-                <div class="form-group"><label>Legendado URL</label><input id="editLeg" class="form-input" value="${esc(data.legLink||'')}"></div>
+                <div class="form-group"><label>Link do Vídeo</label><input id="editVideoUrl" class="form-input" value="${esc(data.videoUrl||'')}"></div>
                 <button class="btn-primary" onclick="saveEdit('${id}','movie')">Salvar Alterações</button>`;
             } else {
-                // Série: campos básicos + gerenciador de temporadas
                 let seasonsHtml = '';
                 if (data.seasons) {
                     Object.entries(data.seasons).forEach(([seasonName, episodes]) => {
                         seasonsHtml += `<div class="season-field" style="background:var(--card-bg);padding:14px;border-radius:10px;margin-bottom:12px;">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                        <input class="form-input season-name-input" value="${esc(seasonName)}" style="flex:1;margin-right:8px;">
-                        <button class="btn-outline" onclick="this.closest('.season-field').remove()">Remover</button>
-                        </div>
-                        <div class="episodes-container">`;
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                                <input class="form-input season-name-input" value="${esc(seasonName)}" style="flex:1;margin-right:8px;">
+                                <button class="btn-outline" onclick="this.closest('.season-field').remove()">Remover</button>
+                            </div>
+                            <div class="episodes-container">`;
                         episodes.forEach(ep => {
                             seasonsHtml += `<div class="episode-field" style="background:var(--input-bg);padding:8px;border-radius:6px;margin-bottom:6px;display:flex;flex-wrap:wrap;gap:6px;">
-                            <input class="form-input episode-name-input" value="${esc(ep.name)}" style="flex:1;min-width:120px;">
-                            <input class="form-input episode-dub-input" value="${esc(ep.dubLink||'')}" placeholder="URL Dublado" style="flex:1;min-width:150px;">
-                            <input class="form-input episode-leg-input" value="${esc(ep.legLink||'')}" placeholder="URL Legendado" style="flex:1;min-width:150px;">
-                            <button class="btn-outline" onclick="this.parentElement.remove()">×</button>
+                                <input class="form-input episode-name-input" value="${esc(ep.name)}" style="flex:1;min-width:120px;">
+                                <input class="form-input episode-video-input" value="${esc(ep.videoUrl||'')}" placeholder="URL do vídeo" style="flex:1;min-width:200px;">
+                                <button class="btn-outline" onclick="this.parentElement.remove()">×</button>
                             </div>`;
                         });
-                        seasonsHtml += `</div><button class="btn-outline" onclick="addEpisodeToSeason(this)">+ Episódio</button></div>`;
+                        seasonsHtml += `</div><button class="btn-outline" onclick="addEpisodeToSeasonEdit(this)">+ Episódio</button></div>`;
                     });
                 }
                 body.innerHTML = `
@@ -1018,21 +1111,20 @@
                 <button class="btn-outline" onclick="addSeasonEdit()" style="margin-top:10px;">+ Nova Temporada</button>
                 <button class="btn-primary" onclick="saveEdit('${id}','series')" style="margin-top:20px;">Salvar Alterações</button>`;
             }
-            modal.classList.add('active');
+            document.getElementById('editModal').classList.add('active');
         }
 
         function closeEditModal() { document.getElementById('editModal').classList.remove('active'); }
 
-        window.addEpisodeToSeason = function(btn) {
+        window.addEpisodeToSeasonEdit = function(btn) {
             const container = btn.previousElementSibling;
             const div = document.createElement('div');
             div.className = 'episode-field';
             div.style.cssText = 'background:var(--input-bg);padding:8px;border-radius:6px;margin-bottom:6px;display:flex;flex-wrap:wrap;gap:6px;';
             div.innerHTML = `
-            <input class="form-input episode-name-input" placeholder="Nome do episódio" style="flex:1;min-width:120px;">
-            <input class="form-input episode-dub-input" placeholder="URL Dublado" style="flex:1;min-width:150px;">
-            <input class="form-input episode-leg-input" placeholder="URL Legendado" style="flex:1;min-width:150px;">
-            <button class="btn-outline" onclick="this.parentElement.remove()">×</button>`;
+                <input class="form-input episode-name-input" placeholder="Nome do episódio" style="flex:1;min-width:120px;">
+                <input class="form-input episode-video-input" placeholder="URL do vídeo" style="flex:1;min-width:200px;">
+                <button class="btn-outline" onclick="this.parentElement.remove()">×</button>`;
             container.appendChild(div);
         };
 
@@ -1042,18 +1134,18 @@
             div.className = 'season-field';
             div.style.cssText = 'background:var(--card-bg);padding:14px;border-radius:10px;margin-bottom:12px;';
             div.innerHTML = `
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-            <input class="form-input season-name-input" value="Nova Temporada" style="flex:1;margin-right:8px;">
-            <button class="btn-outline" onclick="this.closest('.season-field').remove()">Remover</button>
-            </div>
-            <div class="episodes-container">
-            <div class="episode-field" style="background:var(--input-bg);padding:8px;border-radius:6px;margin-bottom:6px;display:flex;flex-wrap:wrap;gap:6px;">
-            <input class="form-input episode-name-input" value="Episódio 1" style="flex:1;min-width:120px;">
-            <input class="form-input episode-dub-input" placeholder="URL Dublado" style="flex:1;min-width:150px;">
-            <input class="form-input episode-leg-input" placeholder="URL Legendado" style="flex:1;min-width:150px;">
-            <button class="btn-outline" onclick="this.parentElement.remove()">×</button>
-            </div></div>
-            <button class="btn-outline" onclick="addEpisodeToSeason(this)">+ Episódio</button>`;
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <input class="form-input season-name-input" value="Nova Temporada" style="flex:1;margin-right:8px;">
+                    <button class="btn-outline" onclick="this.closest('.season-field').remove()">Remover</button>
+                </div>
+                <div class="episodes-container">
+                    <div class="episode-field" style="background:var(--input-bg);padding:8px;border-radius:6px;margin-bottom:6px;display:flex;flex-wrap:wrap;gap:6px;">
+                        <input class="form-input episode-name-input" value="Episódio 1" style="flex:1;min-width:120px;">
+                        <input class="form-input episode-video-input" placeholder="URL do vídeo" style="flex:1;min-width:200px;">
+                        <button class="btn-outline" onclick="this.parentElement.remove()">×</button>
+                    </div>
+                </div>
+                <button class="btn-outline" onclick="addEpisodeToSeasonEdit(this)">+ Episódio</button>`;
             container.appendChild(div);
         };
 
@@ -1066,8 +1158,7 @@
             const updateData = { title, description: desc, imageUrl: img, categories: cat };
 
             if (type === 'movie') {
-                updateData.dubLink = document.getElementById('editDub').value;
-                updateData.legLink = document.getElementById('editLeg').value;
+                updateData.videoUrl = document.getElementById('editVideoUrl').value;
             } else {
                 const seasons = {};
                 document.querySelectorAll('#seasonsEditContainer .season-field').forEach(sf => {
@@ -1076,9 +1167,8 @@
                     const episodes = [];
                     sf.querySelectorAll('.episode-field').forEach(ef => {
                         const epName = ef.querySelector('.episode-name-input').value.trim();
-                        const dub = ef.querySelector('.episode-dub-input').value.trim();
-                        const leg = ef.querySelector('.episode-leg-input').value.trim();
-                        if (epName) episodes.push({ name: epName, dubLink: dub, legLink: leg });
+                        const videoUrl = ef.querySelector('.episode-video-input').value.trim();
+                        if (epName && videoUrl) episodes.push({ name: epName, videoUrl });
                     });
                     if (episodes.length) seasons[seasonName] = episodes;
                 });
@@ -1086,11 +1176,12 @@
             }
 
             await db.collection(col).doc(id).update(updateData);
-            showToast('Atualizado com sucesso!', 'success');
+            showToast('Atualizado!', 'success');
             closeEditModal();
             loadAdmin();
         }
 
+        // ========== NAVEGAÇÃO ==========
         function switchTab(tab) {
             document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
             const btn = document.querySelector(`[data-tab="${tab}"]`);
@@ -1103,6 +1194,7 @@
             if (heroInterval) clearInterval(heroInterval);
         }
 
+        // ========== INICIALIZAÇÃO ==========
         async function init() {
             try {
                 showLoading();
@@ -1122,6 +1214,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.nav-item').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
             document.getElementById('contentModal').addEventListener('click', e => { if (e.target.id === 'contentModal') closeModal(); });
+            document.getElementById('editModal').addEventListener('click', e => { if (e.target.id === 'editModal') closeEditModal(); });
             init();
         });
 
